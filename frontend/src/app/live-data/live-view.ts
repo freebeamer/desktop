@@ -17,6 +17,13 @@ export class LiveView {
   readonly store = inject(LiveStore);
   readonly config = CHART_CONFIG;
   readonly clientId = signal('');
+  // Tracked as a signal (not read live off the DOM at template-eval
+  // time) because this component is OnPush: an <input> with no
+  // (input)/(change) binding never re-triggers change detection on its
+  // own keystrokes, so a [disabled] expression reading pairingName's
+  // raw .value would silently go stale — caught live by an actual
+  // click-through of this form, not by a unit test.
+  readonly pairingNameValue = signal('');
   readonly plotted = signal<string[] | null>(null);
   readonly chartError = signal(false);
   readonly devices = computed(() => [

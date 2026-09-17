@@ -44,11 +44,12 @@
         type="text"
         placeholder="Bay 3 - N55"
         [disabled]="store.busy()"
+        (input)="pairingNameValue.set(pairingName.value)"
     /></label>
     <button
       type="button"
       class="button"
-      [disabled]="store.busy() || !relay.value || !token.value || !pairingName.value"
+      [disabled]="store.busy() || !relay.value || !token.value || !pairingNameValue()"
       (click)="createPairingLink(relay, token, pairingName)"
     >
       Create pairing link
