@@ -436,6 +436,14 @@ func (l *LiveData) ListClients(ctx context.Context, relayURL, adminToken string)
 	return listClients(ctx, relayURL, adminToken)
 }
 
+// CreatePairingLink mints a single-use pairing link a device can
+// redeem (scanned or tapped) to onboard itself, without an admin
+// having to hand it a permanent key. Like ListClients, this precedes
+// any live connection, so it takes relayURL/adminToken directly.
+func (l *LiveData) CreatePairingLink(ctx context.Context, relayURL, adminToken, displayName string) (types.LivePairingLink, error) {
+	return createPairingLink(ctx, relayURL, adminToken, displayName)
+}
+
 // Catalog returns the currently connected relay's telemetry channel
 // catalog. Errors if not connected.
 func (l *LiveData) Catalog(ctx context.Context) (types.LiveCatalog, error) {

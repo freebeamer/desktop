@@ -17,6 +17,12 @@ async function render() {
       catchingUp: false,
     }),
     clients: vi.fn(async () => [{ id: 'client-1', displayName: 'Test client' }]),
+    createPairingLink: vi.fn(async () => ({
+      pairingToken: 'tok',
+      deepLink: 'freebeamer://connect?pairing_token=tok',
+      displayName: 'Bay 3',
+      expiresAt: new Date().toISOString(),
+    })),
     connect: vi.fn(async () => 1),
     disconnect: vi.fn(async () => {}),
     select: vi.fn(async () => 2),
@@ -75,6 +81,37 @@ describe('LiveView', () => {
     expect(token.value).toBe('');
     expect(gateway.connect).toHaveBeenCalledWith(url.value, 'private-token', 'client-1');
     await fixture.whenStable();
+  });
+
+  it('creates and displays a pairing link, then dismisses it', async () => {
+    const { fixture, gateway, root } = await render();
+    const url = root.querySelector<HTMLInputElement>('input[type=url]')!;
+    const token = root.querySelector<HTMLInputElement>('input[type=password]')!;
+    const name = root.querySelector<HTMLInputElement>('input[placeholder="Bay 3 - N55"]')!;
+    url.value = 'https://relay.example';
+    url.dispatchEvent(new Event('input'));
+    token.value = 'admin-token';
+    token.dispatchEvent(new Event('input'));
+    name.value = 'Bay 3';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    const create = [...root.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+      button.textContent?.includes('Create pairing link'),
+    )!;
+    create.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(gateway.createPairingLink).toHaveBeenCalledWith(url.value, 'admin-token', 'Bay 3');
+    expect(root.textContent).toContain('Bay 3');
+    expect(root.querySelector<HTMLInputElement>('.pairing-link-row input')!.value).toBe(
+      'freebeamer://connect?pairing_token=tok',
+    );
+    const dismiss = [...root.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+      button.textContent?.includes('Dismiss'),
+    )!;
+    dismiss.click();
+    fixture.detectChanges();
+    expect(root.querySelector('.pairing-link')).toBeNull();
   });
 
   it('renders known readings, units and stale state without a workspace', async () => {

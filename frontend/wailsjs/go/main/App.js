@@ -34,6 +34,10 @@ export function ConnectLive(arg1, arg2, arg3) {
   return window['go']['main']['App']['ConnectLive'](arg1, arg2, arg3);
 }
 
+export function CreateLivePairingLink(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CreateLivePairingLink'](arg1, arg2, arg3);
+}
+
 export function DisconnectLive() {
   return window['go']['main']['App']['DisconnectLive']();
 }

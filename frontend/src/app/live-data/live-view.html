@@ -39,6 +39,21 @@
       Load clients
     </button>
     <label
+      >Pairing link name<input
+        #pairingName
+        type="text"
+        placeholder="Bay 3 - N55"
+        [disabled]="store.busy()"
+    /></label>
+    <button
+      type="button"
+      class="button"
+      [disabled]="store.busy() || !relay.value || !token.value || !pairingName.value"
+      (click)="createPairingLink(relay, token, pairingName)"
+    >
+      Create pairing link
+    </button>
+    <label
       >Client<select
         #client
         (change)="clientId.set(client.value)"
@@ -73,6 +88,23 @@
   </p>
   @if (store.error()) {
     <p class="error" role="alert">{{ store.error() }}</p>
+  }
+  @if (store.pairingLink(); as link) {
+    <div class="pairing-link" role="status">
+      <p>
+        Pairing link for <strong>{{ link.displayName }}</strong> — single-use, expires
+        {{ link.expiresAt | date: 'short' }}.
+      </p>
+      <div class="pairing-link-row">
+        <input type="text" readonly [value]="link.deepLink" (click)="$any($event.target).select()" />
+        <button type="button" class="button" (click)="copyPairingLink(link.deepLink)">Copy</button>
+        <button type="button" class="button" (click)="store.pairingLink.set(null)">Dismiss</button>
+      </div>
+      <p class="hint">
+        Share this with the device (scanned or tapped) — it pairs and disposes of the link
+        immediately. It won't work a second time.
+      </p>
+    </div>
   }
   @if (store.status().message) {
     <p role="status">

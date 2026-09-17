@@ -18,6 +18,8 @@ export function CloseWorkspace():Promise<void>;
 
 export function ConnectLive(arg1:string,arg2:string,arg3:string):Promise<number>;
 
+export function CreateLivePairingLink(arg1:string,arg2:string,arg3:string):Promise<types.LivePairingLink>;
+
 export function DisconnectLive():Promise<void>;
 
 export function GetBindingContext(arg1:types.BindingRequest):Promise<types.BindingContext>;

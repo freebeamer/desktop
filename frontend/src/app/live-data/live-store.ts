@@ -15,6 +15,7 @@ export class LiveStore implements OnDestroy {
     catchingUp: false,
   } as types.LiveConnectionStatus);
   readonly clients = signal<types.LiveClientSummary[]>([]);
+  readonly pairingLink = signal<types.LivePairingLink | null>(null);
   readonly catalog = signal<types.LiveCatalog | null>(null);
   readonly sources = signal<LiveSource[]>([]);
   readonly selected = signal<LiveSource | null>(null);
@@ -95,6 +96,20 @@ export class LiveStore implements OnDestroy {
       this.clients.set((await this.gateway.clients(url, token)) ?? []);
     } catch {
       this.error.set('Could not list clients. Check the relay URL and admin token.');
+    } finally {
+      this.finish();
+    }
+  }
+
+  async createPairingLink(url: string, token: string, displayName: string): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    this.pairingLink.set(null);
+    try {
+      this.pairingLink.set(await this.gateway.createPairingLink(url, token, displayName));
+    } catch {
+      this.error.set('Could not create a pairing link. Check the relay URL and admin token.');
     } finally {
       this.finish();
     }

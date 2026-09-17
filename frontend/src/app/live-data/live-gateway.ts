@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import {
   ConnectLive,
+  CreateLivePairingLink,
   DisconnectLive,
   GetLiveCatalog,
   ListLiveClients,
@@ -41,6 +42,9 @@ export class LiveGateway {
   }
   clients(url: string, token: string) {
     return ListLiveClients(url, token);
+  }
+  createPairingLink(url: string, token: string, displayName: string) {
+    return CreateLivePairingLink(url, token, displayName);
   }
   catalog() {
     return GetLiveCatalog();

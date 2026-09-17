@@ -48,6 +48,14 @@ class FakeGateway {
   async clients() {
     return [];
   }
+  async createPairingLink(): Promise<types.LivePairingLink> {
+    return {
+      pairingToken: 'tok',
+      deepLink: 'freebeamer://connect?pairing_token=tok',
+      displayName: 'Bay 3',
+      expiresAt: new Date().toISOString(),
+    } as unknown as types.LivePairingLink;
+  }
   async catalog() {
     return { id: 'test', channels: [] } as unknown as types.LiveCatalog;
   }
@@ -163,6 +171,24 @@ describe('LiveStore', () => {
     };
     await store.loadClients('https://relay', 'SECRET');
     expect(store.error()).not.toContain('SECRET');
+    expect(store.busy()).toBe(false);
+  });
+
+  it('creates a pairing link and clears it on demand', async () => {
+    await store.createPairingLink('https://relay', 'token', 'Bay 3');
+    expect(store.pairingLink()?.displayName).toBe('Bay 3');
+    expect(store.busy()).toBe(false);
+    store.pairingLink.set(null);
+    expect(store.pairingLink()).toBeNull();
+  });
+
+  it('does not expose raw errors from a failed pairing-link request', async () => {
+    gateway.createPairingLink = async () => {
+      throw new Error('SECRET');
+    };
+    await store.createPairingLink('https://relay', 'SECRET', 'Bay 3');
+    expect(store.error()).not.toContain('SECRET');
+    expect(store.pairingLink()).toBeNull();
     expect(store.busy()).toBe(false);
   });
 

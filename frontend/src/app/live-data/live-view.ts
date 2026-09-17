@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { PlotlyChart } from '../visualization/plotly-chart';
 import { CHART_CONFIG, chartLayout } from '../visualization/theme';
@@ -8,7 +8,7 @@ import { liveTrace } from './live-traces';
 
 @Component({
   selector: 'app-live-view',
-  imports: [DecimalPipe, PlotlyChart],
+  imports: [DatePipe, DecimalPipe, PlotlyChart],
   templateUrl: './live-view.html',
   styleUrl: './live-view.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +77,23 @@ export class LiveView {
     const secret = token.value;
     token.value = '';
     await this.store.connect(url.value.trim(), secret, client.value);
+  }
+
+  async createPairingLink(
+    url: HTMLInputElement,
+    token: HTMLInputElement,
+    name: HTMLInputElement,
+  ): Promise<void> {
+    await this.store.createPairingLink(url.value.trim(), token.value, name.value.trim());
+  }
+
+  async copyPairingLink(deepLink: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(deepLink);
+    } catch {
+      // Clipboard access can be denied/unavailable; the link is still
+      // shown in the panel for manual copy either way.
+    }
   }
 
   chooseDevice(device: string): void {

@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -66,6 +67,67 @@ func doAdminGET(ctx context.Context, relayURL, adminToken, path string, out any)
 		return fmt.Errorf("relay: unexpected status %d from %s", resp.StatusCode, path)
 	}
 	return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(out)
+}
+
+// doAdminPOST is doAdminGET's POST sibling: same admin bearer token,
+// timeout, and error handling, plus a JSON-encoded request body.
+func doAdminPOST(ctx context.Context, relayURL, adminToken, path string, in, out any) error {
+	base, err := relayBaseURL(relayURL)
+	if err != nil {
+		return err
+	}
+	base.Path += path
+	body, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, relayRequestTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base.String(), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+adminToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return errInvalidAdminToken
+	}
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("relay: unexpected status %d from %s", resp.StatusCode, path)
+	}
+	if out == nil {
+		return nil
+	}
+	return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(out)
+}
+
+// createPairingLink mints a single-use device pairing link for the
+// operator to hand to a phone (scanned or tapped) — the desktop-side
+// equivalent of `freebeamer-relay client pairing-link create`. Its TTL
+// is the relay's own configured default (15 minutes unless the relay
+// operator set Config.PairingLinkTTL) — POST /v1/pairing-links has no
+// per-request override, unlike the CLI's --ttl flag, which talks to
+// the store directly rather than through this HTTP endpoint.
+// publicURL is relayURL itself: the desktop app is already talking to
+// the relay at that address, so the relay can build a ready-to-share
+// deep link without the operator re-entering it.
+func createPairingLink(ctx context.Context, relayURL, adminToken, displayName string) (types.LivePairingLink, error) {
+	req := relayapi.PairingLinkRequest{DisplayName: displayName, PublicURL: relayURL}
+	var resp relayapi.PairingLinkResponse
+	if err := doAdminPOST(ctx, relayURL, adminToken, "/v1/pairing-links", req, &resp); err != nil {
+		return types.LivePairingLink{}, err
+	}
+	return types.LivePairingLink{
+		PairingToken: resp.PairingToken,
+		DeepLink:     resp.DeepLink,
+		DisplayName:  resp.DisplayName,
+		ExpiresAt:    resp.ExpiresAt,
+	}, nil
 }
 
 // listClients returns the relay's registered clients, for the desktop

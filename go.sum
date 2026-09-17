@@ -8,10 +8,10 @@ github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxK
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/freebeamer/core v0.1.0-alpha.1 h1:iaWH1zw3oTapGAj3D8tdAczwMMIrWLXHLIQxiZRXfRk=
-github.com/freebeamer/core v0.1.0-alpha.1/go.mod h1:DZeGnYPB8R7/v4hv7Lcx3Zeb+a4lwCXzPgeiw5YYkIg=
-github.com/freebeamer/relay v0.1.0-alpha.1 h1:gICzDlRPEoY0mxur5j5fLHTXXKWQNg39uI4PyVoD0HA=
-github.com/freebeamer/relay v0.1.0-alpha.1/go.mod h1:OQl2vKZFpy7uN3hMbp1xH0Aa9DX8jrLTBOwEkYKACPM=
+github.com/freebeamer/core v0.1.0-alpha.4 h1:VkSlbiKoCH1s0zyzSL1B88BLEXabaANRzou+ZDKI5jM=
+github.com/freebeamer/core v0.1.0-alpha.4/go.mod h1:DZeGnYPB8R7/v4hv7Lcx3Zeb+a4lwCXzPgeiw5YYkIg=
+github.com/freebeamer/relay v0.1.0-alpha.2 h1:Ih1U2BYMvSXgDBOav+hgzrFc+drqjkSdzKSf0mMl9Dc=
+github.com/freebeamer/relay v0.1.0-alpha.2/go.mod h1:F4tZAYpImDAHkdlv7zfcPnhp3eRXX5m6X7D8ilRcWto=
 github.com/go-ole/go-ole v1.3.0 h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=
 github.com/go-ole/go-ole v1.3.0/go.mod h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78=
 github.com/godbus/dbus/v5 v5.1.0 h1:4KLkAxT3aOY8Li4FRJe/KvhoNFFxo0m6fNuFUO8QJUk=

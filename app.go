@@ -119,6 +119,14 @@ func (a *App) ListLiveClients(relayURL, adminToken string) ([]types.LiveClientSu
 	return a.live.ListClients(a.ctx, relayURL, adminToken)
 }
 
+// CreateLivePairingLink mints a single-use device pairing link at
+// relayURL for a device to redeem itself (scanned or tapped), so an
+// operator never has to hand out a permanent credential. Independent
+// of any active connection, like ListLiveClients.
+func (a *App) CreateLivePairingLink(relayURL, adminToken, displayName string) (types.LivePairingLink, error) {
+	return a.live.CreatePairingLink(a.ctx, relayURL, adminToken, displayName)
+}
+
 // GetLiveCatalog returns the connected relay's telemetry channel catalog.
 // Errors if not currently connected.
 func (a *App) GetLiveCatalog() (types.LiveCatalog, error) {
