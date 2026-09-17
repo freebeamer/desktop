@@ -1,0 +1,245 @@
+<div class="map-editor" (focusin)="activateEditor()" (pointerdown)="activateEditor()">
+  @if (detail(); as d) {
+    @if (d.shape === 'scalar') {
+      <div class="scalar-editor" [class.scalar-editor--dirty]="isDirty(0, 0)">
+        <div class="scalar-editor__drag" cdkDragHandle [title]="'Drag ' + d.title">
+          <span class="scalar-editor__grip" aria-hidden="true">⠿</span>
+          <label class="scalar-editor__title" [title]="d.title" [for]="'scalar-' + d.id">{{ d.title }}</label>
+          @if (!canEdit()) {
+            <span class="scalar-editor__lock" title="Editing is refused for this workspace">read-only</span>
+          }
+        </div>
+        <div class="scalar-editor__control">
+          <input [id]="'scalar-' + d.id" class="scalar-editor__input" type="text" inputmode="decimal"
+            [readOnly]="!canEdit()" [value]="isEditing(0, 0) ? editValue() : formatNumber(d.zValues![0][0])"
+            (focus)="beginEditAt(0, 0)" (input)="setEditValue($any($event.target).value)"
+            (keydown)="onGridKeydown($event)" (blur)="commitEdit()" />
+          @if (d.z.units) { <span class="scalar-editor__units">{{ d.z.units }}</span> }
+        </div>
+        @if (isDirty(0, 0) && canEdit()) {
+          <button class="scalar-editor__restore" type="button" (click)="restoreSelected()" aria-label="Restore original value" title="Restore original value">↺</button>
+        }
+        @if (editError()) {
+          <span class="scalar-editor__error" role="alert">{{ editError() }}</span>
+        }
+      </div>
+    } @else {
+      <header class="map-editor__header" cdkDragHandle>
+        <div>
+          <span class="eyebrow">{{ d.categories.join(', ') || 'Uncategorized' }}</span>
+          <h1>{{ d.title }}</h1>
+          @if (d.description) {
+            <p class="map-editor__description">{{ d.description }}</p>
+          }
+        </div>
+      </header>
+
+      @if (!canEdit()) {
+        <div class="edit-refusal-note">Editing is refused for this workspace — this map is read-only.</div>
+      }
+
+      @if (d.shape === 'one-axis' || d.shape === 'matrix') {
+        <div class="view-toggle" role="tablist" aria-label="Presentation">
+          @if (d.shape === 'one-axis') {
+            <button type="button" class="filter-chip" [class.filter-chip--active]="viewMode() === 'grid'"
+              (click)="setViewMode('grid')">Grid</button>
+            <button type="button" class="filter-chip" [class.filter-chip--active]="viewMode() === 'line'"
+              (click)="setViewMode('line')">Line</button>
+          }
+          @if (d.shape === 'matrix') {
+            <button type="button" class="filter-chip" [class.filter-chip--active]="viewMode() === 'heatmap'"
+              (click)="setViewMode('heatmap')">Heatmap</button>
+            @if (surfaceEligible()) {
+              <button type="button" class="filter-chip" [class.filter-chip--active]="viewMode() === 'surface'"
+                (click)="setViewMode('surface')">3D</button>
+            } @else if (surfaceDisabledReason(); as reason) {
+              <span class="view-toggle__note" [title]="reason">3D unavailable</span>
+            }
+            <span class="view-toggle__spacer"></span>
+            <button type="button" class="view-action" (click)="toggleChart()">
+              {{ chartVisible() ? 'Hide graph' : 'Show graph' }}
+            </button>
+            @if (chartVisible()) {
+              <button type="button" class="view-action" (click)="toggleChartDetached()">
+                {{ chartDetached() ? 'Attach' : 'Detach' }}
+              </button>
+            }
+          }
+        </div>
+        <div class="visual-scale">
+          <div class="value-legend">
+            <span>{{ visualRange().min | number: '1.0-4' }}</span>
+            <span class="value-legend__bar" [style.background]="legendGradient()" aria-hidden="true"></span>
+            <span>{{ visualRange().max | number: '1.0-4' }} {{ d.z.units }}</span>
+          </div>
+        </div>
+      }
+    }
+  }
+
+  @if (detail()?.shape !== 'scalar') {
+    <div class="map-editor__body">
+      @if (loading()) {
+        <div class="status-panel"><div class="spinner" aria-hidden="true"></div><p>Decoding map…</p></div>
+      } @else if (errorMessage()) {
+        <div class="status-panel status-panel--danger">
+          <div class="status-panel__icon" aria-hidden="true">!</div>
+          <p class="status-panel__detail">{{ errorMessage() }}</p>
+          <button class="button" type="button" (click)="retry()">Try again</button>
+        </div>
+      } @else if (detail(); as d) {
+        @if (d.shape === 'matrix') {
+          <div class="matrix-workbench" [class.matrix-workbench--table-only]="!chartVisible() || chartDetached()">
+            <div class="grid-scroll">
+              <table class="map-grid" tabindex="0" (keydown)="onGridKeydown($event)">
+                <thead><tr><th class="map-grid__corner"></th>
+                  @for (value of d.zValues![0]; track $index; let c = $index) {
+                    <th [class.map-grid__header--selected]="isColumnSelected(c)"
+                      (pointerdown)="onColumnHeaderPointerDown($event, c)" (pointerenter)="onColumnHeaderPointerEnter(c)"
+                      (click)="onColumnHeaderClick($event, c)">{{ columnLabel(c) }}</th>
+                  }
+                </tr></thead>
+                <tbody>
+                  @for (row of d.zValues!; track $index; let r = $index) {
+                    <tr><th>{{ rowLabel(r) }}</th>
+                      @for (value of row; track $index; let c = $index) {
+                        <td [class.map-grid__cell--selected]="isSelected(r, c)" [class.map-grid__cell--dirty]="isDirty(r, c)"
+                          [style.background-color]="isSelected(r, c) ? null : cellColor(r, c)"
+                          (pointerdown)="onCellPointerDown($event, r, c)" (pointerenter)="onCellPointerEnter(r, c)"
+                          (click)="onCellClick($event, r, c)"
+                          (dblclick)="beginEditAt(r, c)">
+                          @if (isEditing(r, c)) {
+                            <input class="map-grid__input" type="text" inputmode="decimal" [value]="editValue()"
+                              (input)="setEditValue($any($event.target).value)" (blur)="commitEdit()" appAutofocus />
+                          } @else { {{ value | number: '1.0-4' }} }
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (chartVisible()) {
+            <div class="chart-wrap" [class.chart-wrap--detached]="chartDetached()" cdkDrag
+              [cdkDragDisabled]="!chartDetached()">
+              <div class="chart-wrap__bar" [cdkDragHandleDisabled]="!chartDetached()" cdkDragHandle>
+                <span>{{ viewMode() === 'surface' ? '3D surface' : 'Heatmap' }}</span>
+                @if (chartDetached()) {
+                  <button type="button" aria-label="Attach graph" title="Attach graph" (click)="toggleChartDetached()">↙</button>
+                  <button type="button" aria-label="Hide graph" title="Hide graph" (click)="toggleChart()">×</button>
+                }
+              </div>
+              <app-plotly-chart [data]="chartData()" [layout]="chartLayout()" [config]="chartConfig"
+                (pointClick)="onChartPoint($event)"
+                (rendered)="onChartRendered()" (renderFailed)="onChartRenderFailed()" />
+              @if (chartRenderFailed()) {
+                <div class="chart-fallback" role="alert">
+                  <p>This chart couldn't render on this system.</p>
+                  @if (viewMode() === 'surface') {
+                    <button class="button" type="button" (click)="setViewMode('heatmap')">Try heatmap</button>
+                  }
+                </div>
+              }
+            </div>
+            }
+          </div>
+        } @else {
+        @switch (viewMode()) {
+          @case ('grid') {
+            @switch (d.shape) {
+              @case ('invalid') {
+                <div class="diagnostics-panel" role="alert">
+                  <strong>This map can't be decoded.</strong>
+                  <p class="mono">{{ d.diagnostics }}</p>
+                </div>
+              }
+              @default {
+              <div class="grid-scroll">
+                <table class="map-grid" tabindex="0" (keydown)="onGridKeydown($event)">
+                  @if (showColumnHeaders()) {
+                    <thead>
+                      <tr>
+                        @if (showRowHeaders()) {
+                          <th class="map-grid__corner"></th>
+                        }
+                        @for (value of d.zValues![0]; track $index; let c = $index) {
+                          <th [class.map-grid__header--selected]="isColumnSelected(c)"
+                            (pointerdown)="onColumnHeaderPointerDown($event, c)" (pointerenter)="onColumnHeaderPointerEnter(c)"
+                            (click)="onColumnHeaderClick($event, c)">{{ columnLabel(c) }}</th>
+                        }
+                      </tr>
+                    </thead>
+                  }
+                  <tbody>
+                    @for (row of d.zValues!; track $index; let r = $index) {
+                      <tr>
+                        @if (showRowHeaders()) {
+                          <th>{{ rowLabel(r) }}</th>
+                        }
+                        @for (value of row; track $index; let c = $index) {
+                          <td [class.map-grid__cell--selected]="isSelected(r, c)"
+                            [class.map-grid__cell--dirty]="isDirty(r, c)"
+                            [style.background-color]="isSelected(r, c) ? null : cellColor(r, c)"
+                            (pointerdown)="onCellPointerDown($event, r, c)" (pointerenter)="onCellPointerEnter(r, c)"
+                            (click)="onCellClick($event, r, c)"
+                            (dblclick)="beginEditAt(r, c)">
+                            @if (isEditing(r, c)) {
+                              <input class="map-grid__input" type="text" inputmode="decimal" [value]="editValue()"
+                                (input)="setEditValue($any($event.target).value)" (blur)="commitEdit()" appAutofocus />
+                            } @else {
+                              {{ value | number: '1.0-4' }}
+                            }
+                          </td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        }
+        @default {
+          <div class="chart-wrap">
+            <app-plotly-chart [data]="chartData()" [layout]="chartLayout()" [config]="chartConfig"
+              (pointClick)="onChartPoint($event)"
+              (rendered)="onChartRendered()" (renderFailed)="onChartRenderFailed()" />
+            @if (chartRenderFailed()) {
+              <div class="chart-fallback" role="alert">
+                <p>This chart couldn't render on this system.</p>
+                <button class="button" type="button" (click)="setViewMode('grid')">Back to grid</button>
+              </div>
+            }
+          </div>
+        }
+        }
+      }
+      }
+    </div>
+  }
+
+  @if (detail(); as d) {
+    @if (d.shape !== 'invalid' && d.shape !== 'scalar') {
+      <footer class="cell-inspector">
+        <div><span class="status-key">Selection</span><strong>{{ selectionCount() }} cells</strong></div>
+        <div><span class="status-key">Raw</span><strong>{{ selectedRaw() ?? '—' }}</strong></div>
+        <div><span class="status-key">Decoded</span><strong>{{ selectedValue() === null ? '—' : (selectedValue() | number: '1.0-4') }}</strong></div>
+        <div><span class="status-key">Units</span><strong>{{ d.z.units || '—' }}</strong></div>
+        <div><span class="status-key">Formula</span><strong class="mono">{{ d.z.formula }}</strong></div>
+        <div><span class="status-key">Address</span><strong class="mono">{{ selectedAddress() ?? '—' }}</strong></div>
+        @if (selectedDirty()) {
+          <span class="status-pill status-pill--warning">changed</span>
+        }
+        @if (editError()) {
+          <span class="cell-inspector__error" role="alert">{{ editError() }}</span>
+        }
+        @if (canEdit()) {
+          <span class="cell-inspector__spacer"></span>
+          @if (selectedDirty()) {
+            <button class="button" type="button" (click)="restoreSelected()">Restore original</button>
+          }
+        }
+      </footer>
+    }
+  }
+</div>

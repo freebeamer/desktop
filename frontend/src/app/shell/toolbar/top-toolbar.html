@@ -1,0 +1,78 @@
+<header class="top-toolbar">
+  <div class="top-toolbar__menu-row">
+    <div class="brand" aria-label="FreeBeamer desktop"><span class="brand__mark">FB</span><strong>FreeBeamer</strong></div>
+    <nav class="menu-bar" aria-label="Application menu">
+      <details><summary>File</summary><div class="app-menu">
+        <button type="button" [disabled]="!commands.open.enabled()" (click)="run(commands.open)">Open <kbd>{{ shortcut(commands.open) }}</kbd></button>
+        <button type="button" [disabled]="!commands.saveAs.enabled()" (click)="run(commands.saveAs)">Save As <kbd>{{ shortcut(commands.saveAs) }}</kbd></button>
+        @if (commands.recents().length) {
+          <span class="app-menu__heading">Recent</span>
+          @for (recent of commands.recents(); track recent.xdfPath + recent.binPath) {
+            <button type="button" [title]="recent.xdfPath + '\n' + recent.binPath" (click)="openRecent(recent)">{{ basename(recent.binPath) }}</button>
+          }
+        }
+        <button type="button" [disabled]="!commands.close.enabled()" (click)="run(commands.close)">Close</button>
+      </div></details>
+      <details><summary>Edit</summary><div class="app-menu">
+        <button type="button" [disabled]="!commands.undo.enabled()" (click)="run(commands.undo)">Undo <kbd>{{ shortcut(commands.undo) }}</kbd></button>
+        <button type="button" [disabled]="!commands.redo.enabled()" (click)="run(commands.redo)">Redo <kbd>{{ shortcut(commands.redo) }}</kbd></button>
+      </div></details>
+      <details><summary>View</summary><div class="app-menu">
+        <button type="button" [disabled]="!commands.newGrid.enabled()" (click)="run(commands.newGrid)">New Grid <kbd>{{ shortcut(commands.newGrid) }}</kbd></button>
+        <button type="button" [disabled]="!commands.changes.enabled()" (click)="run(commands.changes)">Changes</button>
+      </div></details>
+      <details><summary>Tools</summary><div class="app-menu"><button type="button" [disabled]="!commands.changes.enabled()" (click)="run(commands.changes)">Review changes <kbd>{{ shortcut(commands.changes) }}</kbd></button></div></details>
+      <details><summary>Help</summary><div class="app-menu"><button type="button" (click)="run(commands.helpCommand)">Keyboard shortcuts <kbd>{{ shortcut(commands.helpCommand) }}</kbd></button></div></details>
+    </nav>
+    <div class="document-state" [title]="workspace.summary()?.binPath || ''">
+      <strong>{{ filename() }}{{ dirty() ? '*' : '' }}</strong>
+      <span class="document-state__status" [attr.data-phase]="workspace.phase()">{{ workspaceStatus() }}</span>
+      @if (workspace.summary(); as summary) {
+        <span class="integrity-state" [attr.data-status]="summary.checksum.status">Checksum {{ summary.checksum.status }}</span>
+      }
+      <span class="engine-state engine-status" [class.engine-status--ready]="backendState() === 'ready'" [class.engine-status--offline]="backendState() === 'offline'" [attr.data-state]="backendState()"><i aria-hidden="true"></i>{{ backendLabel() }}</span>
+    </div>
+  </div>
+
+  <div class="top-toolbar__action-row">
+    <nav class="command-bar toolbar" aria-label="Workspace actions">
+      @for (command of commands.primary; track command.id) {
+        <button type="button" class="toolbar-button button" [class.button--primary]="command.id === 'workspace.open'" [attr.aria-label]="command.id === 'workspace.save-as' ? 'Save as' : command.label" [disabled]="!command.enabled()" [title]="commandTitle(command)" (click)="run(command)">
+          <app-toolbar-icon [name]="command.icon" /><span>{{ command.label }}</span>
+        </button>
+      }
+      <details class="recent-menu"><summary class="toolbar-button button" [class.toolbar-button--icon]="true" title="Recent workspaces" aria-label="Recent workspaces">⌄</summary><div class="app-menu">
+        @if (commands.recents().length) {
+          @for (recent of commands.recents(); track recent.xdfPath + recent.binPath) { <button type="button" [title]="recent.xdfPath + '\n' + recent.binPath" (click)="openRecent(recent)">{{ basename(recent.binPath) }}</button> }
+        } @else { <span class="app-menu__empty">No recent workspaces</span> }
+      </div></details>
+      <span class="toolbar-separator" aria-hidden="true"></span>
+      @for (command of commands.editing; track command.id) {
+        <button type="button" class="toolbar-button toolbar-button--icon" [disabled]="!command.enabled()" [attr.aria-label]="command.label" [title]="commandTitle(command)" (click)="run(command)"><app-toolbar-icon [name]="command.icon" /></button>
+      }
+      <span class="toolbar-separator" aria-hidden="true"></span>
+      @for (command of commands.workspaceGroup; track command.id) {
+        <button type="button" class="toolbar-button" [disabled]="!command.enabled()" [title]="commandTitle(command)" (click)="run(command)"><app-toolbar-icon [name]="command.icon" /><span>{{ command.label }}</span></button>
+      }
+    </nav>
+
+    <form class="table-tools" [class.table-tools--active]="activeEditor.context()" (submit)="$event.preventDefault(); apply()" aria-label="Selected cell tools">
+      <span class="table-tools__map" [title]="activeEditor.context()?.title || ''">{{ activeEditor.context()?.title || 'Select a map' }}</span>
+      <select aria-label="Cell operation" [disabled]="!activeEditor.context()?.editable || activeEditor.pending()" [value]="operation()" (change)="setOperation($any($event.target).value)">
+        @for (option of operations; track option.value) { <option [value]="option.value">{{ option.label }}</option> }
+      </select>
+      <input type="text" inputmode="decimal" aria-label="Operation value" placeholder="Value" [disabled]="!activeEditor.context()?.editable || activeEditor.pending()" [value]="operand()" (input)="setOperand($any($event.target).value)" [attr.aria-invalid]="operand().trim() && operandError() ? true : null" />
+      <button type="submit" class="toolbar-apply" [disabled]="!canApply()">{{ activeEditor.pending() ? 'Applying…' : 'Apply' }}</button>
+      <span class="table-tools__selection">{{ activeEditor.selectionRows() }} × {{ activeEditor.selectionColumns() }} ({{ activeEditor.selectionCount() }})</span>
+      @if (operand().trim() && operandError(); as error) {
+        <span class="table-tools__error" role="alert">{{ error }}</span>
+      } @else if (activeEditor.error(); as error) {
+        <span class="table-tools__error" role="alert" [title]="error">{{ error }}</span>
+      } @else if (activeEditor.result(); as result) {
+        <span class="table-tools__result">{{ result.changedCells }} changed</span>
+      }
+    </form>
+
+    <button type="button" class="toolbar-button toolbar-button--icon" aria-label="Help and keyboard shortcuts" title="Help (F1)" (click)="run(commands.helpCommand)"><app-toolbar-icon name="help" /></button>
+  </div>
+</header>

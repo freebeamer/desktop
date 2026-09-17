@@ -1,0 +1,53 @@
+<div class="diff-panel">
+  <header class="diff-panel__header">
+    <div>
+      <span class="eyebrow">Changes</span>
+      <h1>Byte diff by calibration edit</h1>
+    </div>
+    @if (diff(); as d) {
+      <span class="status-pill" [class.status-pill--warning]="d.changedBytes > 0">{{ d.changedBytes }} byte{{ d.changedBytes === 1 ? '' : 's' }} changed</span>
+    }
+  </header>
+
+  @if (loading() && !diff()) {
+    <div class="status-panel"><div class="spinner" aria-hidden="true"></div><p>Loading changes…</p></div>
+  } @else if (errorMessage()) {
+    <div class="status-panel status-panel--danger">
+      <div class="status-panel__icon" aria-hidden="true">!</div>
+      <p class="status-panel__detail">{{ errorMessage() }}</p>
+      <button class="button" type="button" (click)="retry()">Try again</button>
+    </div>
+  } @else if (diff(); as d) {
+    @if (d.edits.length === 0) {
+      <div class="sidebar-empty">
+        <strong>No changes yet</strong>
+        <p>Edited cells will appear here, grouped by calibration edit, with their exact byte addresses.</p>
+      </div>
+    } @else {
+      <div class="diff-scroll">
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th>Map</th>
+              <th>Cell</th>
+              <th>Address</th>
+              <th>Before</th>
+              <th>After</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (edit of d.edits; track $index) {
+              <tr>
+                <td>{{ edit.mapTitle }}</td>
+                <td class="mono">{{ cellLabel(edit) }}</td>
+                <td class="mono">{{ edit.address }}</td>
+                <td class="mono">{{ edit.beforeValue | number: '1.0-4' }} <span class="diff-table__raw">(raw {{ edit.beforeRaw }})</span></td>
+                <td class="mono diff-table__after">{{ edit.afterValue | number: '1.0-4' }} <span class="diff-table__raw">(raw {{ edit.afterRaw }})</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

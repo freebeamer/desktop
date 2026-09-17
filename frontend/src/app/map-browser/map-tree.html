@@ -1,0 +1,44 @@
+<label class="search-field">
+  <span class="sr-only">Search calibration maps</span><span aria-hidden="true">⌕</span>
+  <input #searchInput type="search" placeholder="Search maps" [value]="store.query()" (input)="onQuery($event)"><kbd>Ctrl K</kbd>
+</label>
+
+@if (store.page(); as page) {
+  @if (page.categories.length > 0) {
+    <label class="category-select">
+      <span class="sr-only">Filter by category</span>
+      <select [value]="store.category()" (change)="store.setCategory($any($event.target).value)">
+        <option value="">All maps ({{ page.categories.length }} categories)</option>
+        @for (name of page.categories; track name) {
+          <option [value]="name">{{ name }}</option>
+        }
+      </select>
+    </label>
+  }
+}
+
+@if (store.errorMessage()) {
+  <div class="sidebar-empty">
+    <strong>Couldn't load maps</strong>
+    <p>{{ store.errorMessage() }}</p>
+  </div>
+} @else if (store.loading() && !store.page()) {
+  <div class="sidebar-empty">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Loading maps…</p>
+  </div>
+} @else if (store.page() && store.page()!.maps.length === 0) {
+  <div class="sidebar-empty">
+    <strong>No maps found</strong>
+    <p>Try a different search or category.</p>
+  </div>
+} @else if (store.page(); as page) {
+  <cdk-virtual-scroll-viewport itemSize="28" class="map-list" [class.map-list--busy]="store.loading()">
+    <button type="button" class="map-row" *cdkVirtualFor="let map of page.maps; trackBy: trackById"
+      [class.map-row--active]="tabs.isMapInActiveGrid(map.id)" draggable="true"
+      (dragstart)="onDragStart($event, map)" (click)="open(map)">
+      <span class="map-row__title">{{ map.title }}</span>
+      <span class="map-row__shape" [attr.data-shape]="map.shape">{{ shapeLabel(map.shape) }}</span>
+    </button>
+  </cdk-virtual-scroll-viewport>
+}

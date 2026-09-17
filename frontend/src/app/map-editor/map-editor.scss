@@ -1,0 +1,100 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; container-type: inline-size; }
+// Doubles as this map's drag handle when hosted in a grid panel — see
+// CdkDragHandle above. It has no interactive children so this is safe.
+.map-editor__header { display: flex; align-items: start; justify-content: space-between; gap: var(--space-4); cursor: move; touch-action: none; }
+.map-editor__header h1 { margin: var(--space-1) 0 0; font-size: 1.1rem; }
+.map-editor__description { max-width: 40rem; margin: var(--space-1) 0 0; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.6; }
+.map-editor__body { min-height: 0; }
+
+.view-toggle { display: flex; align-items: center; gap: 0; }
+.view-toggle__spacer { flex: 1; }
+.view-action { margin-left: var(--space-2); padding: 0.25rem 0.45rem; border: 0; color: var(--text-tertiary); background: transparent; font: 600 0.61rem var(--font-sans); cursor: pointer; }
+.view-action:hover { color: var(--text-primary); background: var(--surface-control); }
+.view-toggle .filter-chip {
+  min-width: 3.25rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 0;
+  font-weight: 600;
+  text-align: center;
+}
+.view-toggle .filter-chip + .filter-chip { margin-left: -1px; }
+.view-toggle .filter-chip:first-child { border-radius: 3px 0 0 3px; }
+.view-toggle .filter-chip:last-of-type { border-radius: 0 3px 3px 0; }
+.view-toggle .filter-chip:hover { position: relative; z-index: 1; border-color: var(--border-strong); color: var(--text-primary); }
+.view-toggle .filter-chip--active { position: relative; z-index: 2; }
+.view-toggle__note { color: var(--text-tertiary); font-size: 0.64rem; font-style: italic; }
+.visual-scale { display: flex; align-items: center; justify-content: flex-end; }
+.value-legend { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: var(--space-2); min-width: 8rem; color: var(--text-tertiary); font: 0.58rem var(--font-mono); white-space: nowrap; }
+.value-legend__bar { width: min(9rem, 35%); min-width: 4rem; height: 0.35rem; border: 1px solid var(--border-default); border-radius: 2px; }
+
+.edit-refusal-note { padding: var(--space-2) var(--space-3); border: 1px solid var(--status-warning); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--status-warning) 12%, var(--surface-control)); color: var(--status-warning); font-size: 0.7rem; }
+
+.chart-wrap { position: relative; width: 100%; height: min(28rem, 55vh); }
+.matrix-workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); align-items: stretch; min-width: 0; }
+.matrix-workbench--table-only { grid-template-columns: minmax(0, 1fr); }
+.matrix-workbench .grid-scroll { height: auto; max-height: min(28rem, 55vh); min-width: 0; }
+.matrix-workbench .chart-wrap { height: min(28rem, 55vh); max-height: none; min-width: 0; }
+.chart-wrap__bar { display: flex; align-items: center; justify-content: space-between; height: 1.7rem; padding: 0 var(--space-2); border: 1px solid var(--border-default); border-bottom: 0; color: var(--text-tertiary); background: var(--surface-control); font-size: 0.62rem; }
+.chart-wrap__bar button { width: 1.35rem; height: 1.35rem; margin-left: var(--space-1); padding: 0; border: 0; color: var(--text-secondary); background: transparent; cursor: pointer; }
+.chart-wrap app-plotly-chart { height: calc(100% - 1.7rem); }
+.chart-wrap--detached { position: fixed; top: 5rem; right: 2rem; left: auto; z-index: 100; width: min(46rem, calc(100vw - 4rem)); height: min(34rem, calc(100vh - 7rem)) !important; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-panel); box-shadow: 0 14px 42px rgba(0, 0, 0, 0.58); }
+.chart-wrap--detached .chart-wrap__bar { cursor: move; touch-action: none; }
+@container (max-width: 620px) { .matrix-workbench { grid-template-columns: 1fr; } }
+.chart-fallback { position: absolute; inset: 0; display: grid; place-items: center; gap: var(--space-3); justify-items: center; background: color-mix(in srgb, var(--surface-panel) 92%, transparent); text-align: center; font-size: 0.78rem; }
+
+.diagnostics-panel { padding: var(--space-4); border: 1px solid var(--status-danger); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--status-danger) 10%, var(--surface-control)); font-size: 0.76rem; }
+.diagnostics-panel strong { color: var(--status-danger); }
+.diagnostics-panel p { margin: var(--space-2) 0 0; color: var(--text-secondary); word-break: break-word; }
+
+.scalar-editor { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-1); min-height: 3.75rem; padding: var(--space-1); padding-right: 1.75rem; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-control); }
+.scalar-editor--dirty { border-color: color-mix(in srgb, var(--status-warning) 60%, var(--border-default)); }
+.scalar-editor__drag { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; gap: var(--space-1); min-width: 0; min-height: 1.55rem; padding: 0 var(--space-1); border-radius: 3px; cursor: move; touch-action: none; }
+.scalar-editor__drag:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.scalar-editor__drag:active { background: color-mix(in srgb, var(--accent) 16%, transparent); cursor: grabbing; }
+.scalar-editor__grip { flex: 0 0 auto; color: var(--text-tertiary); font-size: 0.72rem; }
+.scalar-editor__title { min-width: 0; overflow: hidden; color: var(--text-secondary); font-size: 0.68rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.scalar-editor__control { grid-column: 1; grid-row: 2; display: flex; align-items: center; width: 100%; border: 1px solid var(--border-default); border-radius: 3px; background: var(--surface-panel); }
+.scalar-editor__control:focus-within { border-color: var(--accent-bright); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-bright) 25%, transparent); }
+.scalar-editor__input { flex: 1; width: 0; min-width: 0; padding: 0.24rem 0.3rem; border: 0; outline: 0; color: var(--text-primary); background: transparent; font: 600 0.74rem var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.scalar-editor__input[readonly] { color: var(--text-secondary); cursor: default; }
+.scalar-editor__units { padding-right: 0.4rem; color: var(--text-tertiary); font-size: 0.65rem; white-space: nowrap; }
+.scalar-editor__restore { grid-column: 2; grid-row: 2; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 3px; color: var(--status-warning); background: transparent; cursor: pointer; }
+.scalar-editor__restore:hover { background: color-mix(in srgb, var(--status-warning) 12%, transparent); }
+.scalar-editor__lock { flex: 0 0 auto; margin-left: auto; color: var(--text-tertiary); font-size: 0.54rem; text-transform: uppercase; }
+.scalar-editor__error { grid-column: 1 / -1; grid-row: 3; color: var(--status-danger); font-size: 0.62rem; }
+
+.grid-scroll { max-height: min(32rem, 60vh); overflow: auto; border: 1px solid var(--border-default); border-radius: var(--radius-sm); }
+.map-grid { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; user-select: none; }
+.matrix-workbench .map-grid { width: max-content; }
+.map-grid th, .map-grid td { padding: 0.3rem 0.55rem; border-right: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); font-size: 0.7rem; white-space: nowrap; }
+.map-grid thead th { position: sticky; top: 0; z-index: 1; color: var(--text-tertiary); background: var(--surface-raised); font-weight: 650; text-align: right; cursor: pointer; }
+.map-grid tbody th { position: sticky; left: 0; z-index: 1; color: var(--text-tertiary); background: var(--surface-raised); font-weight: 650; text-align: right; }
+.map-grid__corner { z-index: 2; background: var(--surface-raised); cursor: default; }
+.map-grid thead th:not(.map-grid__corner):hover { box-shadow: inset 0 0 0 1px var(--accent-bright); }
+.map-grid__header--selected { color: #f5f9ff; background: var(--accent) !important; }
+.map-grid td { position: relative; color: var(--text-primary); background: var(--surface-panel); text-align: right; font-family: var(--font-mono); cursor: pointer; }
+.map-grid td:hover { box-shadow: inset 0 0 0 1px var(--accent-bright); }
+.map-grid__cell--selected { color: #f5f9ff; background: var(--accent) !important; }
+.map-grid__cell--dirty:not(.map-grid__cell--selected)::after { content: ''; display: inline-block; width: 0.3rem; height: 0.3rem; margin-left: 0.3rem; border-radius: 50%; background: var(--status-warning); vertical-align: middle; }
+// Positioned out of flow so the input's own intrinsic size can never feed
+// back into the table's column-width calculation (that feedback loop was
+// what made columns balloon out while editing a cell).
+.map-grid__input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  padding: 0.3rem 0.55rem;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: var(--surface-panel);
+  font: inherit;
+  text-align: right;
+  user-select: text;
+}
+
+.cell-inspector { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-5); padding: var(--space-3) var(--space-4); border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-control); font-size: 0.68rem; }
+.cell-inspector div { display: flex; gap: var(--space-2); }
+.cell-inspector strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cell-inspector__error { color: var(--status-danger); }
+.cell-inspector__spacer { flex: 1; }

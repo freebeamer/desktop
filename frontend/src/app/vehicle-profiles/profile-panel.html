@@ -1,0 +1,62 @@
+<section class="profiles" aria-label="Vehicle profiles and map bindings">
+  <header><span class="eyebrow">Calibration association</span><h1>Vehicle profiles & map bindings</h1>
+    <p>Associate telemetry with an exact definition and original firmware. Manual associations remain unverified. Operating-point overlays come in the next phase.</p>
+  </header>
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+  @if (context(); as ctx) {
+    <div class="identity">
+      <div><strong>Original firmware</strong><code>{{ ctx.workspace.originalSha256 }}</code><small>{{ ctx.workspace.originalSize }} bytes · working edits do not change this identity</small></div>
+      <div><strong>Definition {{ ctx.workspace.definitionId }}</strong><code>{{ ctx.workspace.definitionSha256 }}</code></div>
+      <div><strong>Source</strong><span>{{ ctx.session.deviceId }} / {{ ctx.session.sessionId || 'Legacy session' }}</span><small>{{ ctx.session.catalogId || 'Unknown catalog' }} v{{ ctx.session.catalogVersion }}</small></div>
+    </div>
+    <section class="compatibility" role="status" [class.incompatible]="ctx.compatibility.state === 'incompatible'">
+      <strong>{{ ctx.compatibility.state === 'manual' ? 'Manually associated · unverified' : ctx.compatibility.state }}</strong>
+      @if (ctx.activeProfileId) { <span>Profile {{ ctx.activeProfileId }}</span> }
+      @for (reason of ctx.compatibility.reasons; track $index) { <span>{{ reason }}</span> }
+      <span>Verified overlays: {{ ctx.compatibility.verified ? 'eligible' : 'disabled' }}</span>
+    </section>
+    <div class="actions">
+      <label>Saved profile<select [disabled]="busy()" (change)="selectProfile($any($event.target).value)"><option value="">Select a profile</option>
+        @for (profile of ctx.profiles; track profile.id) { <option [value]="profile.id">{{ profile.label }} · {{ profile.workspace.originalSha256.slice(0, 12) }}</option> }
+      </select></label>
+      <button class="button" type="button" [disabled]="busy()" (click)="newProfile()">New profile for this workspace</button>
+      <button class="button" type="button" [disabled]="busy() || !ctx.activeProfileId" (click)="clear()">Clear association</button>
+      <button class="button" type="button" [disabled]="busy()" (click)="refresh()">Refresh</button>
+    </div>
+    @if (draft(); as profile) {
+      <fieldset [disabled]="busy()">
+        <legend>Profile · {{ profile.id }}</legend>
+        <div class="fields">
+          <label>Profile label<input [ngModel]="profile.label" (ngModelChange)="updateField('label', $event)" maxlength="256"></label>
+          <label>ECU family (asserted)<input [ngModel]="profile.ecuFamily" (ngModelChange)="updateField('ecuFamily', $event)"></label>
+          <label>Software identifier (asserted)<input [ngModel]="profile.software" (ngModelChange)="updateField('software', $event)"></label>
+          <label>Telemetry evidence reference<input [ngModel]="profile.telemetryEvidence" (ngModelChange)="updateField('telemetryEvidence', $event)" placeholder="Trial record, or leave unknown"></label>
+          <label>Calibration evidence reference<input [ngModel]="profile.calibrationEvidence" (ngModelChange)="updateField('calibrationEvidence', $event)" placeholder="Matching definition/BIN evidence, or unknown"></label>
+        </div>
+        <p class="hint">Evidence references are notes; entering them does not establish validated support. Catalog eligibility: @for (catalog of profile.catalogs; track catalog.id) { {{ catalog.id }} v{{ catalog.version }} }</p>
+        <h2>Axis bindings</h2>
+        <div class="fields">
+          <label>Canonical parameter / axis<select [(ngModel)]="axisKey"><option value="">Select numeric axis</option>
+            @for (axis of ctx.axes; track key(axis)) { <option [value]="key(axis)">{{ axis.title }} · {{ axis.parameterId }} / {{ axis.axis }} · {{ axis.unit || 'unknown unit' }} · {{ axis.count }} points</option> }
+          </select></label>
+          <label>Observed telemetry channel<select [(ngModel)]="channelId"><option value="">Select channel</option>
+            @for (channel of channels(); track channel.id) { <option [value]="channel.id">{{ channel.label }} · {{ channel.id }} · {{ channel.unit }}</option> }
+          </select></label>
+          <label>Channel physical meaning<select [(ngModel)]="channelMeaning"><option value="">Declare channel meaning</option>@for (meaning of meanings; track meaning) { <option [value]="meaning">{{ meaning }}</option> }</select></label>
+          <label>Axis physical meaning<select [(ngModel)]="axisMeaning"><option value="">Declare axis meaning</option>@for (meaning of meanings; track meaning) { <option [value]="meaning">{{ meaning }}</option> }</select></label>
+        </div>
+        <button class="button" type="button" [disabled]="!axisKey || !channelId || !channelMeaning || !axisMeaning" (click)="addBinding()">Add / replace axis binding</button>
+        @if (!ctx.axes.length) { <p class="hint">No explicit numeric axes are eligible in this definition. Scalar and implicit index axes cannot be bound.</p> }
+        <ul class="bindings">@for (binding of profile.bindings; track binding.parameterId + '/' + binding.axis) {
+          <li><div><strong>{{ binding.parameterId }} / {{ binding.axis }} ← {{ binding.channelId }}</strong><span>{{ binding.channelMeaning }} → {{ binding.axisMeaning }}</span><code>{{ binding.sourceUnit }} × {{ binding.scale }} + {{ binding.offset }} → {{ binding.targetUnit }}</code></div><button class="button" type="button" (click)="remove($index)">Remove</button></li>
+        }</ul>
+        <div class="actions"><button class="button button--primary" type="button" [disabled]="!profile.label || !profile.bindings.length" (click)="save()">Save profile locally</button>
+          <button class="button" type="button" [disabled]="!savedDraft()" (click)="associate()">Associate saved profile (unverified)</button></div>
+      </fieldset>
+    }
+  } @else {
+    <p class="empty">{{ busy() ? 'Loading identities and profiles…' : 'Open an XDF/BIN workspace, then connect and select a source in Live data. Monitoring works independently of profiles.' }}</p>
+    @if (error()) { <button class="button" type="button" [disabled]="busy()" (click)="refresh()">Retry</button> }
+  }
+</section>

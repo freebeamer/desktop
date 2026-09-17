@@ -1,0 +1,219 @@
+<div class="app-shell">
+  <app-top-toolbar [backendState]="backendState()" [backendLabel]="backendLabel()" />
+
+  <nav class="view-switch" aria-label="Application views">
+    <button type="button" [attr.aria-pressed]="view() === 'editor'" (click)="view.set('editor')">Calibration editor</button>
+    <button type="button" [attr.aria-pressed]="view() === 'live'" (click)="view.set('live')">Live data</button>
+    <button type="button" [attr.aria-pressed]="view() === 'profiles'" (click)="view.set('profiles')">Vehicle profiles</button>
+  </nav>
+  @if (view() === 'profiles') { <app-profile-panel /> }
+  @if (view() === 'live') { <app-live-view /> }
+  <main class="workspace" [hidden]="view() !== 'editor'">
+    <aside class="sidebar" aria-label="Calibration map browser">
+      <div class="sidebar-heading">
+        <div>
+          <span class="eyebrow">Maps</span>
+          <strong>{{ workspace.summary() ? (workspace.summary()!.xdf.version + ' definition') : 'No workspace' }}</strong>
+        </div>
+        <span class="count-badge">{{ workspace.summary()?.xdf?.tables ?? 0 }}</span>
+      </div>
+      @if (workspace.phase() === 'ready' || workspace.phase() === 'unsupported') {
+        <app-map-tree />
+      } @else {
+        <label class="search-field">
+          <span class="sr-only">Search calibration maps</span><span aria-hidden="true">⌕</span>
+          <input type="search" placeholder="Search maps" disabled><kbd>Ctrl K</kbd>
+        </label>
+        <div class="filter-row" aria-label="Map filters">
+          <button type="button" class="filter-chip filter-chip--active" disabled>All maps</button>
+          <button type="button" class="filter-chip" disabled>Favorites</button>
+          <button type="button" class="filter-chip" disabled>Changed</button>
+        </div>
+        <div class="sidebar-empty">
+          <div class="empty-icon" aria-hidden="true">≡</div><strong>Map browser</strong>
+          <p>Open an XDF and BIN pair to browse calibration tables.</p>
+        </div>
+      }
+    </aside>
+
+    <section class="editor" aria-label="Calibration editor">
+      <div class="document-tabs" role="tablist" aria-label="Open maps">
+        @for (tab of tabs.tabs(); track tabLabel(tab) + $index) {
+          <button type="button" role="tab" class="document-tab" [class.document-tab--active]="tabs.isActive(tab)"
+            [attr.aria-selected]="tabs.isActive(tab)" (click)="tabs.activate(tab)">
+            <span>{{ tabLabel(tab) }}</span>
+            @if (tab.kind !== 'overview') {
+              <span class="document-tab__close" role="button" aria-label="Close tab"
+                (click)="closeTab($event, tab)">×</span>
+            }
+          </button>
+        }
+        @if (workspace.phase() === 'ready' || workspace.phase() === 'unsupported') {
+          <button type="button" class="document-tabs__add" aria-label="New grid" (click)="tabs.newGrid()">+</button>
+        }
+      </div>
+      <div class="editor-canvas">
+        @switch (workspace.phase()) {
+          @case ('loading') {
+            <section class="status-panel" aria-live="polite">
+              <div class="spinner" aria-hidden="true"></div>
+              <h1>Opening workspace…</h1>
+              <p>Loading the XDF definition, reading the BIN, and checking identity and checksums.</p>
+            </section>
+          }
+          @case ('error') {
+            <section class="status-panel status-panel--danger" aria-live="assertive">
+              <div class="status-panel__icon" aria-hidden="true">!</div>
+              <h1>Couldn't open that workspace</h1>
+              <p class="status-panel__detail">{{ workspace.errorMessage() }}</p>
+              <button class="button button--primary button--large" type="button"
+                (click)="chooseAndOpenWorkspace()">Try again</button>
+            </section>
+          }
+          @case ('ready') {
+            <ng-container *ngTemplateOutlet="documentView"></ng-container>
+          }
+          @case ('unsupported') {
+            <ng-container *ngTemplateOutlet="documentView"></ng-container>
+          }
+          @default {
+            <section class="welcome-panel">
+              <div class="welcome-copy">
+                <span class="eyebrow">Desktop V1</span><h1>Start with a verified workspace</h1>
+                <p>Open a calibration definition and matching firmware image. FreeBeamer will inspect compatibility,
+                  identify the ECU, and verify checksums before editing is enabled.</p>
+                <button class="button button--primary button--large" type="button"
+                  (click)="chooseAndOpenWorkspace()">Open XDF + BIN</button>
+              </div>
+              <div class="verification-card" aria-label="Workspace verification steps">
+                <div class="verification-card__header"><span>Preflight checks</span><span class="status-label">Waiting</span></div>
+                <ol>
+                  <li><span>01</span><div><strong>ROM identity</strong><small>Size, hash, ECU family</small></div></li>
+                  <li><span>02</span><div><strong>XDF compatibility</strong><small>Regions and map bounds</small></div></li>
+                  <li><span>03</span><div><strong>Integrity</strong><small>Provider and checksum regions</small></div></li>
+                </ol>
+              </div>
+            </section>
+          }
+        }
+
+        <ng-template #documentView>
+          @let activeGridId = tabs.activeGridId();
+          @if (activeGridId !== null) {
+            <app-grid-panel [gridId]="activeGridId" [panels]="tabs.activeGridPanels()" />
+          } @else if (tabs.activeTab().kind === 'changes') {
+            <app-diff-panel />
+          } @else {
+            <ng-container *ngTemplateOutlet="inspectPanel"></ng-container>
+          }
+        </ng-template>
+
+        <ng-template #inspectPanel>
+          @if (workspace.summary(); as summary) {
+            <section class="inspect-panel">
+              @if (workspace.phase() === 'unsupported') {
+                <div class="refusal-banner" role="alert">
+                  <strong>Editing is refused for this pairing.</strong>
+                  <span>{{ summary.refusalReason }}</span>
+                </div>
+              }
+              <header class="inspect-panel__header">
+                <div>
+                  <span class="eyebrow">Workspace overview</span>
+                  <h1>{{ summary.xdfPath.split('/').pop() }}</h1>
+                  <p class="inspect-panel__path">{{ summary.binPath }}</p>
+                </div>
+                <button class="button" type="button" (click)="workspace.close()">Close workspace</button>
+              </header>
+
+              <div class="inspect-grid">
+                <article class="inspect-card">
+                  <h2>ROM</h2>
+                  <dl>
+                    <div><dt>Size</dt><dd>{{ summary.rom.sizeBytes | number }} bytes</dd></div>
+                    <div><dt>SHA-256</dt><dd class="mono" [title]="summary.rom.sha256">{{ summary.rom.sha256.slice(0, 16) }}…</dd></div>
+                  </dl>
+                </article>
+
+                <article class="inspect-card">
+                  <h2>ECU identity</h2>
+                  <dl>
+                    <div><dt>Manufacturer</dt><dd>{{ summary.ecu.manufacturer || 'Unknown' }}</dd></div>
+                    <div><dt>Vendor / family</dt><dd>{{ (summary.ecu.vendor + ' ' + summary.ecu.family).trim() || 'Unknown' }}</dd></div>
+                    <div><dt>Engine</dt><dd>{{ summary.ecu.engine || 'Unknown' }}</dd></div>
+                    <div><dt>Confidence</dt><dd class="capitalize">{{ summary.ecu.confidence }}</dd></div>
+                  </dl>
+                </article>
+
+                <article class="inspect-card">
+                  <h2>XDF definition</h2>
+                  <dl>
+                    <div><dt>Version</dt><dd>{{ summary.xdf.version }}</dd></div>
+                    <div><dt>Categories</dt><dd>{{ summary.xdf.categories }}</dd></div>
+                    <div><dt>Tables</dt><dd>{{ summary.xdf.tables }}</dd></div>
+                    <div><dt>Flags</dt><dd>{{ summary.xdf.flags }}</dd></div>
+                  </dl>
+                </article>
+
+                <article class="inspect-card">
+                  <h2>Compatibility</h2>
+                  <dl>
+                    <div><dt>Region fits ROM</dt>
+                      <dd>
+                        <span class="status-pill" [class.status-pill--valid]="summary.compatibility.regionFitsRom"
+                          [class.status-pill--danger]="!summary.compatibility.regionFitsRom">
+                          {{ summary.compatibility.regionFitsRom ? 'Yes' : 'No' }}
+                        </span>
+                      </dd>
+                    </div>
+                    <div><dt>Addressed maps</dt><dd>{{ summary.compatibility.addressedMaps }} / {{ summary.compatibility.totalMaps }}</dd></div>
+                    <div><dt>Validation errors</dt><dd>{{ summary.compatibility.mapValidationErrors }}</dd></div>
+                  </dl>
+                </article>
+
+                <article class="inspect-card">
+                  <h2>Checksum</h2>
+                  <dl>
+                    <div><dt>Provider</dt><dd>{{ summary.checksum.provider || 'None' }}</dd></div>
+                    <div><dt>Status</dt>
+                      <dd>
+                        <span class="status-pill" [class.status-pill--valid]="summary.checksum.status === 'valid'"
+                          [class.status-pill--warning]="summary.checksum.status === 'unsupported' || summary.checksum.status === 'invalid'"
+                          [class.status-pill--danger]="summary.checksum.status === 'error'">
+                          {{ summary.checksum.status }}
+                        </span>
+                      </dd>
+                    </div>
+                    <div><dt>Regions</dt><dd>{{ summary.checksum.regions }}</dd></div>
+                  </dl>
+                </article>
+              </div>
+            </section>
+          }
+        </ng-template>
+      </div>
+      <footer class="statusbar">
+        <button type="button" class="statusbar-link" [disabled]="workspace.phase() !== 'ready' && workspace.phase() !== 'unsupported'"
+          (click)="tabs.openChanges()">
+          <span class="status-key">Changes</span><strong>{{ workspace.summary()?.editCount ?? 0 }}</strong>
+        </button>
+        <div><span class="status-key">Checksums</span><strong>{{ workspace.summary()?.checksum?.status ?? 'Not inspected' }}</strong></div>
+        <div>
+          <span class="status-key">Compatibility</span>
+          <strong>
+            @if (workspace.summary(); as summary) {
+              {{ summary.compatibility.addressedMaps }}/{{ summary.compatibility.totalMaps }} maps
+            } @else {
+              Waiting for files
+            }
+          </strong>
+        </div>
+        <span class="statusbar-spacer"></span>
+        <span class="safety-note">Editing is experimental · Never overwrites the original BIN</span>
+      </footer>
+    </section>
+  </main>
+
+  <app-save-review-dialog />
+  <app-help-dialog />
+</div>

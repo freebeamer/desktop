@@ -1,0 +1,17 @@
+:host { display: block; overflow: auto; min-height: 0; }
+.profiles { max-width: 100rem; margin: auto; padding: 1.5rem; }
+h1 { margin: .4rem 0; font-size: 1.5rem; } h2 { font-size: 1rem; }
+header p, .hint, .empty { color: var(--text-secondary); font-size: .8rem; line-height: 1.6; }
+.eyebrow { font-size: .65rem; color: var(--text-tertiary); letter-spacing: .1em; text-transform: uppercase; }
+.identity, .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1rem; }
+.identity { padding: 1rem; background: var(--surface-panel); border: 1px solid var(--border-default); border-radius: .3rem; }
+.identity div, label, .bindings li div { display: grid; gap: .4rem; }
+code { overflow-wrap: anywhere; color: var(--text-secondary); font-size: .72rem; } small { color: var(--text-tertiary); }
+.compatibility { display: grid; gap: .3rem; margin: 1rem 0; padding: 1rem; border-left: 3px solid var(--status-warning); font-size: .8rem; background: var(--surface-panel); }
+.compatibility strong { text-transform: capitalize; } .incompatible { border-color: var(--status-danger); }
+.actions { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1rem 0; }
+label { font-size: .75rem; color: var(--text-secondary); }
+input, select { width: 100%; min-width: 0; padding: .55rem; background: var(--surface-control); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: .25rem; }
+fieldset { min-width: 0; padding: 1rem; border: 1px solid var(--border-default); } legend { font-size: .8rem; }
+.error { color: var(--status-danger); } .notice { color: var(--text-secondary); }
+.bindings { padding: 0; list-style: none; } .bindings li { display: flex; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid var(--border-default); font-size: .8rem; }

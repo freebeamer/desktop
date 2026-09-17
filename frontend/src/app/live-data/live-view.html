@@ -1,0 +1,196 @@
+<section class="live-view" aria-label="Live telemetry">
+  <header>
+    <div>
+      <span class="eyebrow">Read-only monitoring</span>
+      <h1>Live data</h1>
+    </div>
+    <span
+      class="connection"
+      [class.connected]="store.status().state === 'connected'"
+      role="status"
+      >{{ store.status().state }}</span
+    >
+  </header>
+  <form class="connection-form" (submit)="$event.preventDefault(); connect(relay, token, client)">
+    <label
+      >Relay URL<input
+        #relay
+        type="url"
+        placeholder="https://relay.example.com"
+        required
+        [disabled]="store.busy()"
+        (input)="store.clients.set([]); clientId.set('')"
+    /></label>
+    <label
+      >Admin token<input
+        #token
+        type="password"
+        autocomplete="off"
+        required
+        [disabled]="store.busy()"
+        (input)="store.clients.set([]); clientId.set('')"
+    /></label>
+    <button
+      type="button"
+      class="button"
+      [disabled]="store.busy() || !relay.value || !token.value"
+      (click)="store.loadClients(relay.value.trim(), token.value)"
+    >
+      Load clients
+    </button>
+    <label
+      >Client<select
+        #client
+        (change)="clientId.set(client.value)"
+        required
+        [disabled]="store.busy() || !store.clients().length"
+      >
+        <option value="">Select client</option>
+        @for (item of store.clients(); track item.id) {
+          <option [value]="item.id">{{ item.displayName || item.id }}</option>
+        }
+      </select></label
+    >
+    <button
+      type="submit"
+      class="button button--primary"
+      [disabled]="store.busy() || !clientId() || !token.value"
+    >
+      Connect
+    </button>
+    <button
+      type="button"
+      class="button"
+      [disabled]="store.busy() || store.status().state === 'disconnected'"
+      (click)="store.disconnect()"
+    >
+      Disconnect
+    </button>
+  </form>
+  <p class="hint">
+    Credentials are not saved. Enter the admin token again to change clients or start a new
+    connection.
+  </p>
+  @if (store.error()) {
+    <p class="error" role="alert">{{ store.error() }}</p>
+  }
+  @if (store.status().message) {
+    <p role="status">
+      {{ store.status().message }}
+      @if (retryTime()) {
+        · Retry around {{ retryTime() }}
+      }
+    </p>
+  }
+  <div class="source-bar">
+    <label
+      >Device<select
+        [value]="store.selected()?.deviceId ?? ''"
+        [disabled]="store.busy() || !devices().length"
+        (change)="chooseDevice($any($event.target).value)"
+      >
+        <option value="" disabled>Waiting for devices</option>
+        @for (device of devices(); track device) {
+          <option [value]="device">{{ device }}</option>
+        }
+      </select></label
+    >
+    <label
+      >Session<select
+        [value]="store.selected()?.sessionId ?? ''"
+        [disabled]="store.busy() || !sessions().length"
+        (change)="chooseSession($any($event.target).value)"
+      >
+        @for (source of sessions(); track source.sessionId) {
+          <option [value]="source.sessionId">
+            {{ source.sessionId || 'Legacy · session unknown' }}
+          </option>
+        }
+      </select></label
+    >
+    <div class="reading-status" role="status">
+      @if (store.activeClient()) {
+        <span>Client: {{ store.activeClient() }}</span>
+      }
+      <strong [class.warning]="store.freshness() !== 'Fresh'">{{ store.freshness() }}</strong>
+      @if (store.age() !== null) {
+        <span>Sample age {{ store.age()! / 1000 | number: '1.0-1' }} s</span>
+      }
+      <span
+        >{{ store.gaps() }} missing samples · {{ store.history().length }} / 2,000 retained</span
+      >
+    </div>
+  </div>
+  @if (store.status().catchingUp) {
+    <p class="warning">Receiving backfill / waiting for the first live sample.</p>
+  }
+  @if (store.latest()?.backfill) {
+    <p class="warning">Showing historical backfill. Acquisition time determines freshness.</p>
+  }
+  @if (!store.latest()) {
+    <p class="empty">
+      Connect to a relay and select a source to see readings. No calibration workspace is needed. A
+      source change waits for its next sample.
+    </p>
+  }
+  <div class="data-grid">
+    <section class="channels" aria-label="Channel readings">
+      <h2>Channels <small>Select up to four plots</small></h2>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Plot / channel</th>
+            <th scope="col">Value</th>
+            <th scope="col">Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (channel of channels(); track channel.id) {
+            <tr>
+              <td>
+                <label class="channel-label"
+                  ><input
+                    type="checkbox"
+                    [checked]="isPlotted(channel.id)"
+                    (change)="togglePlot(channel.id)"
+                  />
+                  <span
+                    >{{ channel.label }}<small>{{ channel.validation }}</small></span
+                  ></label
+                >
+              </td>
+              <td class="value">
+                {{
+                  store.latest()?.values?.[channel.id] === undefined
+                    ? '—'
+                    : (store.latest()!.values[channel.id] | number: '1.0-3')
+                }}
+              </td>
+              <td>{{ channel.unit || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+    <section class="plots" aria-label="Time-series plots">
+      @if (chartError()) {
+        <p class="error" role="alert">Chart rendering failed. Channel readings remain available.</p>
+      }
+      @for (plot of plots(); track plot.id) {
+        <article>
+          <h2>{{ plot.title }}</h2>
+          <app-plotly-chart
+            [data]="plot.data"
+            [layout]="plot.layout"
+            [config]="config"
+            (renderFailed)="chartError.set(true)"
+          />
+        </article>
+      }
+      <p class="hint">
+        Gaps and missing channel values break the trace. History is limited to 2,000 samples for the
+        selected source; selecting another source clears it.
+      </p>
+    </section>
+  </div>
+</section>

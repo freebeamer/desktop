@@ -1,0 +1,31 @@
+<div class="grid-panel" #canvas (dragover)="onDragOver($event)" (drop)="onDrop($event)">
+  @if (panels().length === 0) {
+    <div class="sidebar-empty grid-panel__empty">
+      <div class="empty-icon" aria-hidden="true">▦</div>
+      <strong>This grid is empty</strong>
+      <p>Click a map in the sidebar, or drag one here, to add it. Add several to edit them side by side.</p>
+    </div>
+  } @else {
+    @for (panel of panels(); track trackByMapId($index, panel)) {
+      <div
+        class="grid-panel__cell"
+        [attr.data-map-id]="panel.mapId"
+        cdkDrag
+        [cdkDragBoundary]="dragBoundary()"
+        [cdkDragFreeDragPosition]="{ x: panel.x, y: panel.y }"
+        (cdkDragEnded)="onDragEnded($event, panel)"
+        [style.width.px]="panel.width"
+        [style.height.px]="panel.height"
+      >
+        <button class="icon-button grid-panel__remove" type="button" aria-label="Remove from grid"
+          (click)="remove(panel.mapId)">×</button>
+        <div class="grid-panel__body">
+          <app-map-editor [mapId]="panel.mapId" (mapLoaded)="onMapLoaded(panel, $event)"
+            (layoutChanged)="onMapLayoutChanged(panel.mapId)" />
+        </div>
+        <div class="grid-panel__resize-handle" (pointerdown)="onResizePointerDown($event, panel)"
+          aria-hidden="true"></div>
+      </div>
+    }
+  }
+</div>

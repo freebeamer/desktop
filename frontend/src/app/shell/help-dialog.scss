@@ -1,0 +1,17 @@
+:host { display: contents; }
+.help-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgb(4 6 8 / 0.6); }
+.help-dialog { display: grid; gap: var(--space-4); width: min(28rem, 92vw); max-height: 85vh; overflow: auto; padding: var(--space-5); border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--shadow-panel); }
+.help-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+.help-section h3 { margin: 0 0 var(--space-2); color: var(--text-tertiary); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+.help-section h3:not(:first-child) { margin-top: var(--space-4); }
+.help-shortcuts { display: grid; gap: var(--space-2); margin: 0; }
+.help-shortcuts div { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.help-shortcuts dt { color: var(--text-secondary); font-size: 0.72rem; }
+.help-shortcuts dd { margin: 0; color: var(--text-primary); font-size: 0.72rem; text-align: right; }
+
+.help-about__tagline { margin: 0 0 var(--space-4); color: var(--text-secondary); font-size: 0.8rem; }
+.help-about__safety { margin-top: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--status-warning); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--status-warning) 10%, var(--surface-control)); font-size: 0.72rem; line-height: 1.6; }
+.help-about__safety strong { color: var(--status-warning); }
+.help-about__safety p { margin: var(--space-2) 0 0; color: var(--text-secondary); }
+.help-about__safety p:first-of-type { margin-top: 0; }

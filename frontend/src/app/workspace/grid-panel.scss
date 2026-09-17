@@ -1,0 +1,73 @@
+// .editor-canvas centers other document views as fixed-width cards
+// (place-items: center); a grid of maps should stretch to fill it instead.
+:host { display: block; width: 100%; height: 100%; min-height: 0; justify-self: stretch; align-self: stretch; }
+
+// A freeform canvas, not a CSS grid: panels are absolutely positioned and
+// sized by the user (see .grid-panel__cell), so nothing here auto-fits or
+// auto-shrinks them. overflow: auto scrolls to reveal panels dragged past
+// the visible edge — absolutely positioned descendants still count toward
+// a relative ancestor's scrollable area.
+.grid-panel { position: relative; width: 100%; height: 100%; min-height: 20rem; padding: var(--space-2); overflow: auto; }
+.grid-panel__empty { display: grid; place-items: center; height: 100%; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); }
+
+// No card box around this — just the map's own content, positioned and
+// sized freely on the canvas. Border/background live on the map's own
+// elements (table, scalar readout, etc.), not a wrapper here.
+.grid-panel__cell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 15rem;
+  min-height: 0;
+}
+
+// Floats over MapEditor's own header, which doubles as the drag handle —
+// no extra bar just to hold a title and a close button. Sized down from
+// the usual icon-button so it doesn't crowd the header's status pill.
+.grid-panel__remove {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 2;
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.8rem;
+  background: var(--surface-raised);
+}
+
+.grid-panel__body { flex: 1 1 auto; min-height: 0; padding: var(--space-2); overflow: auto; }
+
+// A scalar is one label and one value, not a document-sized panel. Collapse
+// the generic table container once the scalar editor has loaded and remove
+// resize chrome that would add complexity without useful content.
+.grid-panel__cell:has(.scalar-editor) {
+  height: auto !important;
+  min-width: 12rem;
+  min-height: 0;
+}
+.grid-panel__cell:has(.scalar-editor) .grid-panel__body { flex: none; padding: 0; overflow: visible; }
+.grid-panel__resize-handle {
+  position: absolute;
+  top: 1.8rem;
+  right: -0.2rem;
+  bottom: 0;
+  width: 0.65rem;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.grid-panel__resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0.2rem;
+  right: 0.15rem;
+  bottom: 0.2rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.grid-panel__resize-handle:hover::after { background: var(--accent-bright); }
+
+.cdk-drag-preview { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5); }
+.cdk-drag-placeholder { opacity: 0.25; }

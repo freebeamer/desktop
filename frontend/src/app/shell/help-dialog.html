@@ -1,0 +1,50 @@
+@if (store.isOpen()) {
+  <div class="help-backdrop" (click)="close()">
+    <div class="help-dialog" role="dialog" aria-label="Help" (click)="$event.stopPropagation()">
+      <header class="help-dialog__header">
+        <nav class="view-toggle" role="tablist" aria-label="Help section">
+          <button type="button" class="filter-chip" [class.filter-chip--active]="store.tab() === 'shortcuts'"
+            (click)="store.setTab('shortcuts')">Keyboard shortcuts</button>
+          <button type="button" class="filter-chip" [class.filter-chip--active]="store.tab() === 'about'"
+            (click)="store.setTab('about')">About</button>
+        </nav>
+        <button class="icon-button" type="button" aria-label="Close" (click)="close()">×</button>
+      </header>
+
+      @switch (store.tab()) {
+        @case ('shortcuts') {
+          <section class="help-section">
+            <h3>Global</h3>
+            <dl class="help-shortcuts">
+              @for (item of globalShortcuts; track item.keys) {
+                <div><dt class="mono">{{ item.keys }}</dt><dd>{{ item.action }}</dd></div>
+              }
+            </dl>
+            <p class="help-tools">Use the top table tools to Fill, Offset, Multiply, Divide, or Scale the active selection. The entire operation is validated and can be undone in one step.</p>
+            <h3>Calibration grid</h3>
+            <dl class="help-shortcuts">
+              @for (item of gridShortcuts; track item.keys) {
+                <div><dt class="mono">{{ item.keys }}</dt><dd>{{ item.action }}</dd></div>
+              }
+            </dl>
+          </section>
+        }
+        @case ('about') {
+          <section class="help-section">
+            <p class="help-about__tagline">An experimental open-source ECU calibration editor.</p>
+            <dl class="help-shortcuts">
+              @for (item of versions; track item.keys) {
+                <div><dt>{{ item.keys }}</dt><dd class="mono">{{ item.action }}</dd></div>
+              }
+            </dl>
+            <div class="help-about__safety" role="note">
+              <strong>BIN/XDF editing: experimental.</strong>
+              <p>Checksum correction is firmware-specific and calibration-only. It refuses code checksum damage and every unvalidated software/layout. Passing checksum verification is not a flashing claim.</p>
+              <p><strong>Do not flash generated files.</strong></p>
+            </div>
+          </section>
+        }
+      }
+    </div>
+  </div>
+}
