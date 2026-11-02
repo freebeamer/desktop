@@ -533,11 +533,11 @@ export namespace types {
 	export class GarageSettings {
 	    url: string;
 	    configured: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new GarageSettings(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.url = source["url"];
@@ -732,6 +732,7 @@ export namespace types {
 	}
 	export class MapDetail {
 	    id: number;
+	    parameterId?: string;
 	    title: string;
 	    description: string;
 	    categories: string[];
@@ -759,6 +760,7 @@ export namespace types {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
+	        this.parameterId = source["parameterId"];
 	        this.title = source["title"];
 	        this.description = source["description"];
 	        this.categories = source["categories"];

@@ -1,6 +1,7 @@
 import type { Data, Layout } from 'plotly.js';
 import type { types } from '../../../wailsjs/go/models';
 import { CHART_COLORS, chartLayout, valueColorscale, valueGradientColor } from './theme';
+import type { AxisReading, OperatingPoint } from '../operating-point/operating-point';
 
 export interface CellPoint {
   row: number;
@@ -176,4 +177,48 @@ export function surfaceIneligibleReason(detail: types.MapDetail): string | null 
     return null;
   }
   return `This map has ${detail.rows * detail.columns} cells; 3D is disabled above ${MAX_INTERACTIVE_SURFACE_CELLS} cells for interactivity. Use the heatmap or grid instead.`;
+}
+
+/** Chart coordinate of a reading inside its axis: the measured value when
+ * the trace plots decoded breakpoints, otherwise its fractional cell index. */
+function operatingCoordinate(reading: AxisReading | undefined, usesValues: boolean): number | null {
+  const position = reading?.position;
+  if (!reading || position?.kind !== 'inside') return null;
+  return usesValues ? reading.value : position.lower + position.fraction * (position.upper - position.lower);
+}
+
+/** An operating-point cursor for line and heatmap charts. Out-of-range
+ * readings get no marker (they are never clamped onto an edge); 3D surfaces
+ * report the point in text only. */
+export function buildOperatingPointTrace(
+  detail: types.MapDetail,
+  mode: 'grid' | 'line' | 'heatmap' | 'surface',
+  point: OperatingPoint | null,
+  range: { min: number; max: number },
+): Data | null {
+  if (point?.kind !== 'point' || !point.cells) return null;
+  const reading = (axis: 'x' | 'y') => point.readings.find((item) => item.axis === axis);
+  const common = { hoverinfo: 'skip' as const, showlegend: false, name: 'operating point' };
+  if (mode === 'line') {
+    const rowVector = detail.rows === 1;
+    const axisValues = rowVector ? detail.xValues : detail.yValues;
+    const addressed = (rowVector ? detail.x : detail.y).addressed && !!axisValues;
+    const x = operatingCoordinate(reading(rowVector ? 'x' : 'y'), addressed);
+    if (x === null) return null;
+    return {
+      ...common, type: 'scatter', mode: 'lines', x: [x, x], y: [range.min, range.max],
+      line: { color: CHART_COLORS.operatingPoint, width: 2, dash: 'dash' },
+    } as Data;
+  }
+  if (mode === 'heatmap') {
+    const values = matrixAxisValues(detail);
+    const x = operatingCoordinate(reading('x'), values.x === detail.xValues);
+    const y = operatingCoordinate(reading('y'), values.y === detail.yValues);
+    if (x === null || y === null) return null;
+    return {
+      ...common, type: 'scatter', mode: 'markers', x: [x], y: [y],
+      marker: { size: 16, symbol: 'x-thin-open', color: CHART_COLORS.operatingPoint, line: { width: 3, color: CHART_COLORS.operatingPoint } },
+    } as Data;
+  }
+  return null;
 }

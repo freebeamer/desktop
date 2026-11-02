@@ -5,6 +5,7 @@ import { WorkspaceStore } from '../workspace/workspace-store';
 import { LiveStore } from '../live-data/live-store';
 import { sourceKey } from '../live-data/live-gateway';
 import { ProfileGateway } from './profile-gateway';
+import { OperatingPointStore } from '../operating-point/operating-point-store';
 
 const meanings = ['engine-speed', 'load-measured', 'load-requested', 'pressure-absolute', 'pressure-gauge', 'temperature', 'torque-measured', 'torque-requested', 'vehicle-speed', 'lambda'];
 
@@ -16,6 +17,7 @@ export class ProfilePanel implements OnDestroy {
   readonly workspace = inject(WorkspaceStore);
   readonly live = inject(LiveStore);
   private readonly gateway = inject(ProfileGateway);
+  private readonly operatingPoints = inject(OperatingPointStore);
   readonly context = signal<types.BindingContext | null>(null);
   readonly draft = signal<types.VehicleProfile | null>(null);
   readonly busy = signal(false);
@@ -110,6 +112,7 @@ export class ProfilePanel implements OnDestroy {
       const context = await this.gateway[action]({ ...this.request, profile: this.draft()! } as types.BindingRequest);
       if (revision !== this.revision) return;
       this.context.set(context);
+      void this.operatingPoints.refresh();
       if (action === 'save') this.notice.set('Profile saved locally. Associate it explicitly to use it with this source.');
     } catch (error) { if (revision === this.revision) this.error.set(String(error)); }
     finally { if (revision === this.revision) this.busy.set(false); }
@@ -118,7 +121,7 @@ export class ProfilePanel implements OnDestroy {
   async clear(): Promise<void> {
     if (this.busy()) return;
     const revision = this.revision; this.busy.set(true); this.error.set('');
-    try { await this.gateway.clear(); if (revision === this.revision) await this.refresh(); }
+    try { await this.gateway.clear(); void this.operatingPoints.refresh(); if (revision === this.revision) await this.refresh(); }
     catch (error) { if (revision === this.revision) this.error.set(String(error)); }
     finally { if (revision === this.revision) this.busy.set(false); }
   }

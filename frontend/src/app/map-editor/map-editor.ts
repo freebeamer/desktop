@@ -11,6 +11,7 @@ import {
   buildHeatmapTrace,
   buildLineTrace,
   buildSurfaceTrace,
+  buildOperatingPointTrace,
   buildSelectionTrace,
   heatmapLayout,
   lineIndexToCell,
@@ -22,6 +23,9 @@ import {
 } from '../visualization/traces';
 import { CHART_CONFIG, valueGradientColor } from '../visualization/theme';
 import type { types } from '../../../wailsjs/go/models';
+import { LiveStore } from '../live-data/live-store';
+import { OperatingPointStore } from '../operating-point/operating-point-store';
+import { OperatingPoint, describeReading, operatingPoint as locateOperatingPoint } from '../operating-point/operating-point';
 
 interface CellSelection {
   row: number;
@@ -70,6 +74,8 @@ export class MapEditor implements OnDestroy {
   private readonly gateway = inject(DesktopGateway);
   private readonly workspace = inject(WorkspaceStore);
   private readonly activeEditor = inject(ActiveEditorStore);
+  private readonly operatingPoints = inject(OperatingPointStore);
+  private readonly live = inject(LiveStore);
   protected readonly editHistory = inject(EditHistoryStore);
   private requestGeneration = 0;
   private readonly chartDrag = viewChild(CdkDrag);
@@ -142,6 +148,36 @@ export class MapEditor implements OnDestroy {
     return `linear-gradient(90deg, ${stops.join(', ')})`;
   });
 
+  // The operating-point overlay is opt-in and purely visual: it never reads or
+  // writes edit selection, undo history or BIN bytes.
+  protected readonly showOperatingPoint = signal(false);
+  protected readonly operatingBindings = computed(() => this.operatingPoints.bindingsFor(this.detail()?.parameterId));
+  protected readonly operatingAssociation = this.operatingPoints.association;
+  protected readonly operatingPoint = computed<OperatingPoint | null>(() => {
+    const detail = this.detail();
+    const association = this.operatingAssociation();
+    if (!this.showOperatingPoint() || !detail || !association) return null;
+    return locateOperatingPoint(detail, this.operatingBindings(), this.live.latest(), association.source, this.live.freshness());
+  });
+  protected readonly operatingLines = computed(() => {
+    const point = this.operatingPoint();
+    const detail = this.detail();
+    if (point?.kind !== 'point' || !detail) return [];
+    return point.readings.map((reading) => reading.axis === 'x'
+      ? describeReading(reading, detail.xValues ?? [], detail.x.units)
+      : describeReading(reading, detail.yValues ?? [], detail.y.units));
+  });
+
+  private readonly operatingCells = computed(() => {
+    const point = this.operatingPoint();
+    return point?.kind === 'point' ? point.cells : null;
+  });
+
+  protected isOperatingCell(row: number, column: number): boolean {
+    const cells = this.operatingCells();
+    return !!cells && row >= cells.rows[0] && row <= cells.rows[1] && column >= cells.columns[0] && column <= cells.columns[1];
+  }
+
   protected readonly surfaceEligible = computed(() => {
     const detail = this.detail();
     return detail !== null && isSurfaceEligible(detail);
@@ -181,7 +217,8 @@ export class MapEditor implements OnDestroy {
       return [];
     }
     const selection = buildSelectionTrace(detail, this.viewMode(), this.selected());
-    return selection ? [trace, selection] : [trace];
+    const operating = buildOperatingPointTrace(detail, this.viewMode(), this.operatingPoint(), this.visualRange());
+    return [trace, selection, operating].filter((item): item is Data => item !== null);
   });
 
   protected readonly chartLayout = computed(() => {
@@ -289,6 +326,7 @@ export class MapEditor implements OnDestroy {
     this.chartDetached.set(false);
     this.chartRenderFailed.set(false);
     this.editingCell.set(null);
+    this.showOperatingPoint.set(false);
     try {
       const detail = await this.gateway.getMap(id);
       if (generation !== this.requestGeneration) {

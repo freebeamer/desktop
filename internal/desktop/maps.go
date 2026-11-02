@@ -78,6 +78,7 @@ func (s *Service) GetMap(mapID int) (types.MapDetail, error) {
 
 	detail := types.MapDetail{
 		ID:          mapID,
+		ParameterID: parameter.ID,
 		Title:       parameter.Name,
 		Description: parameter.Description,
 		Categories:  def.CategoryNames(parameter.Categories),

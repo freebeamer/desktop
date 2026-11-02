@@ -84,6 +84,9 @@ func TestGetMapDecodesFullDetailWithAddresses(t *testing.T) {
 	if detail.Title != "Boost target" || detail.Shape != types.ShapeMatrix {
 		t.Fatalf("detail = %#v", detail)
 	}
+	if detail.ParameterID == "" {
+		t.Fatal("ParameterID is empty; profile bindings cannot reference this map")
+	}
 	if detail.Rows != 2 || detail.Columns != 2 {
 		t.Fatalf("dimensions = %dx%d", detail.Rows, detail.Columns)
 	}

@@ -16,6 +16,7 @@ export const CHART_COLORS = {
   accentBright: '#68a9ec',
   statusValid: '#42aa75',
   statusWarning: '#d49a42',
+  operatingPoint: '#e45cff',
 } as const;
 
 /** Builds Plotly's scale from the same value function used by table cells. */

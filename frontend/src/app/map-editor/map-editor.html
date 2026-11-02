@@ -46,6 +46,12 @@
             <button type="button" class="filter-chip" [class.filter-chip--active]="viewMode() === 'line'"
               (click)="setViewMode('line')">Line</button>
           }
+          @if (operatingBindings().length) {
+            <button type="button" class="view-action" [attr.aria-pressed]="showOperatingPoint()"
+              (click)="showOperatingPoint.set(!showOperatingPoint())">
+              {{ showOperatingPoint() ? 'Hide operating point' : 'Show operating point' }}
+            </button>
+          }
           @if (d.shape === 'matrix') {
             <button type="button" class="filter-chip" [class.filter-chip--active]="viewMode() === 'heatmap'"
               (click)="setViewMode('heatmap')">Heatmap</button>
@@ -73,6 +79,20 @@
             <span>{{ visualRange().max | number: '1.0-4' }} {{ d.z.units }}</span>
           </div>
         </div>
+        @if (operatingPoint(); as point) {
+          <div class="operating-point" role="status" aria-label="Operating point">
+            <span class="status-pill" [class.status-pill--valid]="operatingAssociation()?.verified"
+              [class.status-pill--warning]="!operatingAssociation()?.verified">
+              {{ operatingAssociation()?.verified ? 'Validated profile' : 'Unverified profile' }}
+            </span>
+            @if (point.kind === 'point') {
+              @for (line of operatingLines(); track $index) { <span>{{ line }}</span> }
+              <span class="operating-point__note">Position from measured axis values, not the ECU's own cell selection.</span>
+            } @else {
+              <span>{{ point.reason }}</span>
+            }
+          </div>
+        }
       }
     }
   }
@@ -104,6 +124,7 @@
                     <tr><th>{{ rowLabel(r) }}</th>
                       @for (value of row; track $index; let c = $index) {
                         <td [class.map-grid__cell--selected]="isSelected(r, c)" [class.map-grid__cell--dirty]="isDirty(r, c)"
+                          [class.map-grid__cell--operating]="isOperatingCell(r, c)"
                           [style.background-color]="isSelected(r, c) ? null : cellColor(r, c)"
                           (pointerdown)="onCellPointerDown($event, r, c)" (pointerenter)="onCellPointerEnter(r, c)"
                           (click)="onCellClick($event, r, c)"
@@ -179,6 +200,7 @@
                         @for (value of row; track $index; let c = $index) {
                           <td [class.map-grid__cell--selected]="isSelected(r, c)"
                             [class.map-grid__cell--dirty]="isDirty(r, c)"
+                          [class.map-grid__cell--operating]="isOperatingCell(r, c)"
                             [style.background-color]="isSelected(r, c) ? null : cellColor(r, c)"
                             (pointerdown)="onCellPointerDown($event, r, c)" (pointerenter)="onCellPointerEnter(r, c)"
                             (click)="onCellClick($event, r, c)"

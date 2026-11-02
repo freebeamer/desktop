@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Provider, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { Config, Data, Layout, PlotHoverEvent, PlotMouseEvent } from 'plotly.js';
 import { DesktopGateway } from '../core/desktop-gateway';
@@ -6,6 +6,10 @@ import { EditHistoryStore } from '../workspace/edit-history-store';
 import { WorkspaceStore } from '../workspace/workspace-store';
 import { PlotlyRuntime } from '../visualization/plotly-runtime';
 import { MapEditor } from './map-editor';
+import { LiveStore } from '../live-data/live-store';
+import type { LiveSample } from '../live-data/live-gateway';
+import { OperatingPointStore } from '../operating-point/operating-point-store';
+import type { OverlayBinding } from '../operating-point/operating-point';
 import type { types } from '../../../wailsjs/go/models';
 
 const axis = (overrides: Partial<types.AxisDetail> = {}): types.AxisDetail =>
@@ -266,11 +270,12 @@ class HostComponent {
   }
 }
 
-async function render(gateway: FakeGateway, mapId: number, plotly: FakePlotlyRuntime = new FakePlotlyRuntime()) {
+async function render(gateway: FakeGateway, mapId: number, plotly: FakePlotlyRuntime = new FakePlotlyRuntime(), providers: Provider[] = []) {
   TestBed.configureTestingModule({
     providers: [
       { provide: DesktopGateway, useValue: gateway },
       { provide: PlotlyRuntime, useValue: plotly },
+      ...providers,
     ],
   });
   // MapEditor reads WorkspaceStore.summary().editingAllowed to gate its own
@@ -772,5 +777,78 @@ describe('MapEditor', () => {
     fixture.detectChanges();
 
     expect((compiled.querySelectorAll('.map-grid td')[0] as HTMLElement).textContent?.trim()).toBe('42');
+  });
+
+  describe('operating-point overlay', () => {
+    const source = { deviceId: 'phone', sessionId: 'session-1' };
+    const latest = signal<LiveSample | null>(null);
+    const freshness = signal('Fresh');
+    const bindings: OverlayBinding[] = [
+      { axis: 'x', channelId: 'RPM', scale: 1, offset: 0 },
+      { axis: 'y', channelId: 'MAP', scale: 1, offset: 0 },
+    ];
+    const reading = (rpm: number, map: number): LiveSample =>
+      ({ ...source, sequence: 1, timestamp: '', values: { RPM: rpm, MAP: map }, backfill: false, gapBefore: 0 });
+    const providers: Provider[] = [
+      { provide: LiveStore, useValue: { latest, freshness } },
+      { provide: OperatingPointStore, useValue: {
+        association: signal({ profile: {}, verified: false, source }),
+        bindingsFor: (id: string | undefined) => (id === 'boost-target' ? bindings : []),
+      } },
+    ];
+
+    async function renderBound() {
+      const gateway = new FakeGateway();
+      gateway.detailById.set(2, { ...matrixDetail(), parameterId: 'boost-target' } as types.MapDetail);
+      const fixture = await render(gateway, 2, new FakePlotlyRuntime(), providers);
+      const compiled = fixture.nativeElement as HTMLElement;
+      const operating = () => Array.from(compiled.querySelectorAll('.map-grid td'))
+        .map((cell, index) => (cell.classList.contains('map-grid__cell--operating') ? index : -1)).filter((index) => index >= 0);
+      const toggle = () => Array.from(compiled.querySelectorAll('button')).find((b) => b.textContent?.includes('operating point'));
+      return { fixture, compiled, gateway, operating, toggle };
+    }
+
+    it('is opt-in and marks bracketing cells without touching selection or edits', async () => {
+      latest.set(reading(1500, 20));
+      freshness.set('Fresh');
+      const { fixture, compiled, gateway, operating, toggle } = await renderBound();
+      expect(operating()).toEqual([]);
+      toggle()!.click();
+      fixture.detectChanges();
+      // RPM 1500 lies between columns 0 and 1; MAP 20 is exactly on row 1.
+      expect(operating()).toEqual([2, 3]);
+      expect(compiled.querySelector('.operating-point')?.textContent).toContain('Unverified profile');
+      expect(compiled.querySelector('.operating-point')?.textContent).toContain('between 1000 and 2000');
+      const cells = Array.from(compiled.querySelectorAll('.map-grid td'));
+      expect(cells[0].classList).toContain('map-grid__cell--selected');
+      expect(gateway.setCellCalls).toEqual([]);
+      expect(gateway.operationCalls).toEqual([]);
+    });
+
+    it('states out-of-range readings and clears the cursor on stale readings', async () => {
+      latest.set(reading(2500, 15));
+      freshness.set('Fresh');
+      const { fixture, compiled, operating, toggle } = await renderBound();
+      toggle()!.click();
+      fixture.detectChanges();
+      expect(operating()).toEqual([]);
+      expect(compiled.querySelector('.operating-point')?.textContent).toContain('above the axis maximum 2000 (not clamped)');
+
+      latest.set(reading(1000, 10));
+      fixture.detectChanges();
+      expect(operating()).toEqual([0]);
+      freshness.set('Stale');
+      fixture.detectChanges();
+      expect(operating()).toEqual([]);
+      expect(compiled.querySelector('.operating-point')?.textContent).toContain('Readings unavailable: Stale.');
+    });
+
+    it('offers no overlay for maps without bindings', async () => {
+      const gateway = new FakeGateway();
+      gateway.detailById.set(2, matrixDetail());
+      const fixture = await render(gateway, 2, new FakePlotlyRuntime(), providers);
+      const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'));
+      expect(buttons.some((b) => b.textContent?.includes('operating point'))).toBe(false);
+    });
   });
 });
