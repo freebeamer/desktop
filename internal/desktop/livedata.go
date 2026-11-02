@@ -97,7 +97,8 @@ func (l *LiveData) Status() types.LiveConnectionStatus {
 	return status
 }
 
-// Connect starts a new live connection to relayURL scoped to clientID,
+// Connect starts a new live connection to relayURL scoped to clientID
+// (or to the entire garage when clientID is empty),
 // tearing down any existing connection first. It validates its arguments
 // and returns promptly; the connect attempt itself (and every subsequent
 // reconnect) proceeds in the background, observable via "live:status"
@@ -105,9 +106,6 @@ func (l *LiveData) Status() types.LiveConnectionStatus {
 func (l *LiveData) Connect(relayURL, adminToken, clientID string) error {
 	if _, err := relayBaseURL(relayURL); err != nil {
 		return err
-	}
-	if clientID == "" {
-		return errors.New("relay: client_id is required")
 	}
 
 	l.lifecycleMu.Lock()
@@ -171,7 +169,8 @@ func (l *LiveData) disconnectLocked() {
 }
 
 // SetDeviceSession filters the already-connected client's stream to one
-// discovered (deviceID, sessionID) pair — or clears the filter if both are
+// discovered (deviceID, sessionID) pair. An empty sessionID follows all
+// sessions on the device; it clears the filter if both are
 // "". This does not reconnect: the relay has no subscription protocol
 // below client_id, so device/session selection is client-side filtering
 // of an already-flowing stream, not a relay-side resubscribe. Dedup/gap
@@ -394,7 +393,7 @@ func filterSamples(samples []types.LiveSample, device, session string) []types.L
 	}
 	out := make([]types.LiveSample, 0, len(samples))
 	for _, s := range samples {
-		if s.DeviceID == device && s.SessionID == session {
+		if s.DeviceID == device && (session == "" || s.SessionID == session) {
 			out = append(out, s)
 		}
 	}

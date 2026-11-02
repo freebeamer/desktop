@@ -530,6 +530,20 @@ export namespace types {
 	        this.canRedo = source["canRedo"];
 	    }
 	}
+	export class GarageSettings {
+	    url: string;
+	    configured: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new GarageSettings(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.configured = source["configured"];
+	    }
+	}
 	export class HealthStatus {
 	    ready: boolean;
 	    apiVersion: string;

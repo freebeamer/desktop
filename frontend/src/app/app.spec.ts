@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { GarageGateway, GarageStore } from './garage/garage-store';
+import { LiveGateway } from './live-data/live-gateway';
 import { DesktopGateway } from './core/desktop-gateway';
 import { EditHistoryStore } from './workspace/edit-history-store';
 import { PlotlyRuntime } from './visualization/plotly-runtime';
@@ -163,6 +165,11 @@ async function renderWith(gateway: FakeGateway) {
   await TestBed.configureTestingModule({
     imports: [App],
     providers: [
+      { provide: GarageGateway, useValue: { restore: async () => ({ url: 'https://garage.example', configured: true }) } },
+      { provide: LiveGateway, useValue: {
+        onStatus: () => () => {}, onBatch: () => () => {},
+        status: async () => ({ generation: 1, state: 'connecting', retryable: false, catchingUp: true }),
+      } },
       { provide: DesktopGateway, useValue: gateway },
       { provide: PlotlyRuntime, useValue: fakePlotly },
     ],
@@ -175,6 +182,13 @@ async function renderWith(gateway: FakeGateway) {
 }
 
 describe('App', () => {
+  it('restores the garage on startup before Live Data is opened', async () => {
+    const fixture = await renderWith(new FakeGateway());
+    expect(fixture.nativeElement.querySelector('app-live-view')).toBeNull();
+    expect(TestBed.inject(GarageStore).configured()).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-garage-panel').textContent).toContain('https://garage.example');
+  });
+
   it('opens live monitoring without a workspace and preserves the editor shell', async () => {
     const fixture = await renderWith(new FakeGateway());
     const root = fixture.nativeElement as HTMLElement;

@@ -61,7 +61,7 @@ func (l *LiveData) WithBindingSession(generation uint64, device, session string,
 	if !ok {
 		return fmt.Errorf("selected source has not been observed")
 	}
-	if l.scope.selectedDevice != "" && (device != l.scope.selectedDevice || session != l.scope.selectedSession) {
+	if l.scope.selectedDevice != "" && (device != l.scope.selectedDevice || (l.scope.selectedSession != "" && session != l.scope.selectedSession)) {
 		return fmt.Errorf("selected live scope differs from requested source")
 	}
 	return action(value)

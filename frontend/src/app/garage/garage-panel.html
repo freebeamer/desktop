@@ -1,0 +1,94 @@
+<section aria-label="Garage network" class="garage">
+  <div class="garage-status">
+    <button
+      type="button"
+      class="button"
+      [attr.aria-expanded]="store.open()"
+      (click)="store.open.set(!store.open())"
+    >
+      Garage settings
+    </button>
+    <span>{{ store.url() || 'Set up your garage network' }}</span>
+    <span role="status">{{ store.busy() ? 'Connecting' : store.live.status().state }}</span>
+  </div>
+  @if (store.open()) {
+    <form (submit)="$event.preventDefault(); save(url, token)">
+      <label
+        >Garage API URL<input
+          #url
+          type="url"
+          required
+          [value]="store.url()"
+          [disabled]="store.busy()"
+          placeholder="https://garage.example.com"
+      /></label>
+      <label
+        >API token<input
+          #token
+          type="password"
+          required
+          autocomplete="off"
+          [disabled]="store.busy()"
+      /></label>
+      <button
+        class="button button--primary"
+        type="submit"
+        [disabled]="store.busy() || store.live.busy()"
+      >
+        Save and connect
+      </button>
+      <label
+        >Pairing link name<input
+          #pairingName
+          type="text"
+          placeholder="Bay 3 - N55"
+          [disabled]="store.busy() || store.live.busy()"
+          (input)="pairingNameValue.set(pairingName.value)"
+      /></label>
+      <button
+        type="button"
+        class="button"
+        [disabled]="store.busy() || store.live.busy() || !pairingNameValue()"
+        (click)="createPairingLink(url, token, pairingName)"
+      >
+        Create pairing link
+      </button>
+      <p>
+        Saved on this computer. FreeBeamer connects to your garage automatically when it starts.
+      </p>
+    </form>
+  }
+  @if (store.live.pairingLink(); as link) {
+    <div class="pairing-link" role="status">
+      <p>
+        Pairing link for <strong>{{ link.displayName }}</strong> — single-use, expires
+        {{ link.expiresAt | date: 'short' }}.
+      </p>
+      <div class="pairing-link-row">
+        <input
+          type="text"
+          readonly
+          [value]="link.deepLink"
+          (click)="$any($event.target).select()"
+        />
+        <button type="button" class="button" (click)="copyPairingLink(link.deepLink)">Copy</button>
+        <button type="button" class="button" (click)="store.live.pairingLink.set(null)">
+          Dismiss
+        </button>
+      </div>
+      <p class="hint">
+        Share this with the device (scanned or tapped) — it pairs and disposes of the link
+        immediately. It won't work a second time.
+      </p>
+    </div>
+  }
+  @if (store.live.error()) {
+    <p class="error" role="alert">{{ store.live.error() }}</p>
+  }
+  @if (store.error()) {
+    <p class="error" role="alert">{{ store.error() }}</p>
+  }
+  @if (store.live.status().message) {
+    <p role="status">{{ store.live.status().message }}</p>
+  }
+</section>

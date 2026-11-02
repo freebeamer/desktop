@@ -1,5 +1,5 @@
 :host { display: block; min-width: 48rem; height: 100vh; color: var(--text-primary); }
-.app-shell { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100%; background: var(--surface-base); }
+.app-shell { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); height: 100%; background: var(--surface-base); }
 .titlebar { display: flex; align-items: center; gap: var(--space-5); padding: 0 var(--space-5); border-bottom: 1px solid var(--border-strong); background: var(--surface-raised); user-select: none; }
 .brand { display: flex; align-items: center; gap: var(--space-3); min-width: 15.5rem; }
 .brand div, .sidebar-heading div { display: grid; gap: 0.15rem; }

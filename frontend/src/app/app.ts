@@ -1,5 +1,7 @@
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, HostListener, OnInit, inject, signal } from '@angular/core';
+import { GaragePanel } from './garage/garage-panel';
+import { GarageStore } from './garage/garage-store';
 import { ProfilePanel } from './vehicle-profiles/profile-panel';
 import { LiveView } from './live-data/live-view';
 import { DiffPanel } from './changes/diff-panel';
@@ -17,13 +19,14 @@ type BackendState = 'checking' | 'ready' | 'offline';
 
 @Component({
   selector: 'app-root',
-  imports: [ProfilePanel, LiveView, NgTemplateOutlet, DecimalPipe, MapTree, DiffPanel, SaveReviewDialog, HelpDialog, GridPanel, TopToolbar],
+  imports: [GaragePanel, ProfilePanel, LiveView, NgTemplateOutlet, DecimalPipe, MapTree, DiffPanel, SaveReviewDialog, HelpDialog, GridPanel, TopToolbar],
   styleUrl: './app.scss',
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App implements OnInit {
   private readonly gateway = inject(DesktopGateway);
+  private readonly garage = inject(GarageStore);
   protected readonly workspace = inject(WorkspaceStore);
   protected readonly tabs = inject(DocumentTabsStore);
   private readonly keyboard = inject(KeyboardCommandDispatcher);
@@ -35,6 +38,7 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     void this.checkBackend();
+    void this.garage.initialize();
   }
 
   protected chooseAndOpenWorkspace(): void {

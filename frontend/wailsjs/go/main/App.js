@@ -30,6 +30,10 @@ export function CloseWorkspace() {
   return window['go']['main']['App']['CloseWorkspace']();
 }
 
+export function ConfigureGarage(arg1, arg2) {
+  return window['go']['main']['App']['ConfigureGarage'](arg1, arg2);
+}
+
 export function ConnectLive(arg1, arg2, arg3) {
   return window['go']['main']['App']['ConnectLive'](arg1, arg2, arg3);
 }
@@ -88,6 +92,10 @@ export function RecentWorkspaces() {
 
 export function Redo() {
   return window['go']['main']['App']['Redo']();
+}
+
+export function RestoreGarage() {
+  return window['go']['main']['App']['RestoreGarage']();
 }
 
 export function SaveAs(arg1) {

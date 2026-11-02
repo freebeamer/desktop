@@ -211,6 +211,28 @@ describe('LiveStore', () => {
     expect(store.gaps()).toBe(3);
   });
 
+  it('finishes initial backfill on the newest observed session', () => {
+    gateway.batch([
+      sample(1, { backfill: true }),
+      sample(2, { sessionId: 'new-session', backfill: true }),
+    ]);
+    expect(store.selected()?.sessionId).toBe('new-session');
+    expect(store.latest()?.sequence).toBe(2);
+  });
+
+  it('follows new sessions on the selected device and ignores retired-session replay', async () => {
+    await store.selectDevice('phone');
+    gateway.batch([sample(10)]);
+    gateway.batch([sample(1, { sessionId: 'new-session' })]);
+    expect(store.selected()?.sessionId).toBe('new-session');
+    expect(store.history().map((s) => s.sequence)).toEqual([1]);
+    gateway.batch([sample(11, { backfill: true }), sample(50, { deviceId: 'other' })]);
+    expect(store.selected()?.sessionId).toBe('new-session');
+    expect(store.latest()?.sequence).toBe(1);
+    gateway.batch([sample(2, { sessionId: 'new-session' })]);
+    expect(store.latest()?.sequence).toBe(2);
+  });
+
   it('unsubscribes both Wails listeners on destruction', () => {
     store.ngOnDestroy();
     expect(gateway.cleanupStatus).toHaveBeenCalledOnce();

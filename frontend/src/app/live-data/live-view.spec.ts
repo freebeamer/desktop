@@ -17,12 +17,6 @@ async function render() {
       catchingUp: false,
     }),
     clients: vi.fn(async () => [{ id: 'client-1', displayName: 'Test client' }]),
-    createPairingLink: vi.fn(async () => ({
-      pairingToken: 'tok',
-      deepLink: 'freebeamer://connect?pairing_token=tok',
-      displayName: 'Bay 3',
-      expiresAt: new Date().toISOString(),
-    })),
     connect: vi.fn(async () => 1),
     disconnect: vi.fn(async () => {}),
     select: vi.fn(async () => 2),
@@ -56,62 +50,19 @@ async function render() {
 }
 
 describe('LiveView', () => {
-  it('lists clients and clears the password before starting a connection', async () => {
-    const { fixture, gateway, root } = await render();
-    const url = root.querySelector<HTMLInputElement>('input[type=url]')!;
-    const token = root.querySelector<HTMLInputElement>('input[type=password]')!;
-    url.value = 'https://relay.example';
-    url.dispatchEvent(new Event('input'));
-    token.value = 'private-token';
-    token.dispatchEvent(new Event('input'));
+  it('offers only a device picker and follows the device without a session choice', async () => {
+    const { fixture, gateway, root, store } = await render();
+    store.sources.set([{ deviceId: 'phone', sessionId: 'session-1' }]);
     fixture.detectChanges();
-    const load = [...root.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Load clients'),
-    )!;
-    load.click();
+    expect(root.querySelector('form')).toBeNull();
+    expect(root.querySelector('input[type=password]')).toBeNull();
+    expect(root.querySelectorAll('select')).toHaveLength(1);
+    const device = root.querySelector('select')!;
+    device.value = 'phone';
+    device.dispatchEvent(new Event('change'));
     await fixture.whenStable();
-    fixture.detectChanges();
-    expect(gateway.clients).toHaveBeenCalledWith(url.value, 'private-token');
-    const client = root.querySelector<HTMLSelectElement>('.connection-form select')!;
-    client.value = 'client-1';
-    client.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-    expect(root.querySelector<HTMLButtonElement>('button[type=submit]')!.disabled).toBe(false);
-    root.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
-    expect(token.value).toBe('');
-    expect(gateway.connect).toHaveBeenCalledWith(url.value, 'private-token', 'client-1');
-    await fixture.whenStable();
-  });
-
-  it('creates and displays a pairing link, then dismisses it', async () => {
-    const { fixture, gateway, root } = await render();
-    const url = root.querySelector<HTMLInputElement>('input[type=url]')!;
-    const token = root.querySelector<HTMLInputElement>('input[type=password]')!;
-    const name = root.querySelector<HTMLInputElement>('input[placeholder="Bay 3 - N55"]')!;
-    url.value = 'https://relay.example';
-    url.dispatchEvent(new Event('input'));
-    token.value = 'admin-token';
-    token.dispatchEvent(new Event('input'));
-    name.value = 'Bay 3';
-    name.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    const create = [...root.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Create pairing link'),
-    )!;
-    create.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(gateway.createPairingLink).toHaveBeenCalledWith(url.value, 'admin-token', 'Bay 3');
-    expect(root.textContent).toContain('Bay 3');
-    expect(root.querySelector<HTMLInputElement>('.pairing-link-row input')!.value).toBe(
-      'freebeamer://connect?pairing_token=tok',
-    );
-    const dismiss = [...root.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-      button.textContent?.includes('Dismiss'),
-    )!;
-    dismiss.click();
-    fixture.detectChanges();
-    expect(root.querySelector('.pairing-link')).toBeNull();
+    expect(gateway.select).toHaveBeenCalledWith({ deviceId: 'phone', sessionId: '' });
+    expect(gateway.connect).not.toHaveBeenCalled();
   });
 
   it('renders known readings, units and stale state without a workspace', async () => {

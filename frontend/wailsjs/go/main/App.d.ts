@@ -16,6 +16,8 @@ export function ClearBindingProfile():Promise<void>;
 
 export function CloseWorkspace():Promise<void>;
 
+export function ConfigureGarage(arg1:string,arg2:string):Promise<types.GarageSettings>;
+
 export function ConnectLive(arg1:string,arg2:string,arg3:string):Promise<number>;
 
 export function CreateLivePairingLink(arg1:string,arg2:string,arg3:string):Promise<types.LivePairingLink>;
@@ -45,6 +47,8 @@ export function OpenWorkspace(arg1:string,arg2:string):Promise<types.WorkspaceSu
 export function RecentWorkspaces():Promise<Array<types.RecentEntry>>;
 
 export function Redo():Promise<types.EditOutcome>;
+
+export function RestoreGarage():Promise<types.GarageSettings>;
 
 export function SaveAs(arg1:string):Promise<types.SaveOutcome>;
 

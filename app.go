@@ -13,10 +13,17 @@ type App struct {
 	service *desktop.Service
 	dialog  desktop.FileDialog
 	live    *desktop.LiveData
+	garage  *desktop.Garage
 }
 
 func NewApp() *App {
-	return &App{service: desktop.NewService(), dialog: desktop.WailsFileDialog{}, live: desktop.NewLiveData()}
+	live := desktop.NewLiveData()
+	return &App{service: desktop.NewService(), dialog: desktop.WailsFileDialog{}, live: live, garage: desktop.NewGarage(live)}
+}
+
+func (a *App) RestoreGarage() (types.GarageSettings, error) { return a.garage.Restore() }
+func (a *App) ConfigureGarage(url, token string) (types.GarageSettings, error) {
+	return a.garage.Configure(url, token)
 }
 
 func (a *App) startup(ctx context.Context) {

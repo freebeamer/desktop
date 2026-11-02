@@ -1,0 +1,60 @@
+.garage {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 0.75rem;
+  background: var(--surface-panel);
+}
+.garage-status,
+form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+form {
+  margin-top: 0.75rem;
+  align-items: end;
+}
+label {
+  display: grid;
+  gap: 0.35rem;
+}
+input {
+  padding: 0.5rem;
+  min-width: 16rem;
+  color: var(--text-primary);
+  background: var(--surface-control);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.25rem;
+}
+p {
+  color: var(--text-secondary);
+}
+.error {
+  color: var(--status-danger);
+}
+.hint {
+  color: var(--text-tertiary);
+}
+.pairing-link {
+  padding: 0.85rem 1rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+  background: var(--surface-panel);
+  p {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+.pairing-link-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+}

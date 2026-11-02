@@ -11,101 +11,8 @@
       >{{ store.status().state }}</span
     >
   </header>
-  <form class="connection-form" (submit)="$event.preventDefault(); connect(relay, token, client)">
-    <label
-      >Relay URL<input
-        #relay
-        type="url"
-        placeholder="https://relay.example.com"
-        required
-        [disabled]="store.busy()"
-        (input)="store.clients.set([]); clientId.set('')"
-    /></label>
-    <label
-      >Admin token<input
-        #token
-        type="password"
-        autocomplete="off"
-        required
-        [disabled]="store.busy()"
-        (input)="store.clients.set([]); clientId.set('')"
-    /></label>
-    <button
-      type="button"
-      class="button"
-      [disabled]="store.busy() || !relay.value || !token.value"
-      (click)="store.loadClients(relay.value.trim(), token.value)"
-    >
-      Load clients
-    </button>
-    <label
-      >Pairing link name<input
-        #pairingName
-        type="text"
-        placeholder="Bay 3 - N55"
-        [disabled]="store.busy()"
-        (input)="pairingNameValue.set(pairingName.value)"
-    /></label>
-    <button
-      type="button"
-      class="button"
-      [disabled]="store.busy() || !relay.value || !token.value || !pairingNameValue()"
-      (click)="createPairingLink(relay, token, pairingName)"
-    >
-      Create pairing link
-    </button>
-    <label
-      >Client<select
-        #client
-        (change)="clientId.set(client.value)"
-        required
-        [disabled]="store.busy() || !store.clients().length"
-      >
-        <option value="">Select client</option>
-        @for (item of store.clients(); track item.id) {
-          <option [value]="item.id">{{ item.displayName || item.id }}</option>
-        }
-      </select></label
-    >
-    <button
-      type="submit"
-      class="button button--primary"
-      [disabled]="store.busy() || !clientId() || !token.value"
-    >
-      Connect
-    </button>
-    <button
-      type="button"
-      class="button"
-      [disabled]="store.busy() || store.status().state === 'disconnected'"
-      (click)="store.disconnect()"
-    >
-      Disconnect
-    </button>
-  </form>
-  <p class="hint">
-    Credentials are not saved. Enter the admin token again to change clients or start a new
-    connection.
-  </p>
   @if (store.error()) {
     <p class="error" role="alert">{{ store.error() }}</p>
-  }
-  @if (store.pairingLink(); as link) {
-    <div class="pairing-link" role="status">
-      <p>
-        Pairing link for <strong>{{ link.displayName }}</strong> — single-use, expires
-        {{ link.expiresAt | date: 'short' }}.
-      </p>
-      <div class="pairing-link-row">
-        <input type="text" readonly [value]="link.deepLink" (click)="$any($event.target).select()" />
-        <button type="button" class="button" (click)="copyPairingLink(link.deepLink)">Copy</button>
-        <button type="button" class="button" (click)="store.pairingLink.set(null)">Dismiss</button>
-      </div>
-      <p class="hint">
-        Share this with the device (scanned or tapped) — it pairs and disposes of the link
-        immediately. It won't work a second time.
-      </p>
-    </div>
   }
   @if (store.status().message) {
     <p role="status">
@@ -122,22 +29,11 @@
         [disabled]="store.busy() || !devices().length"
         (change)="chooseDevice($any($event.target).value)"
       >
-        <option value="" disabled>Waiting for devices</option>
+        <option value="" disabled>
+          {{ devices().length ? 'Select device' : 'Waiting for devices' }}
+        </option>
         @for (device of devices(); track device) {
           <option [value]="device">{{ device }}</option>
-        }
-      </select></label
-    >
-    <label
-      >Session<select
-        [value]="store.selected()?.sessionId ?? ''"
-        [disabled]="store.busy() || !sessions().length"
-        (change)="chooseSession($any($event.target).value)"
-      >
-        @for (source of sessions(); track source.sessionId) {
-          <option [value]="source.sessionId">
-            {{ source.sessionId || 'Legacy · session unknown' }}
-          </option>
         }
       </select></label
     >
@@ -162,8 +58,7 @@
   }
   @if (!store.latest()) {
     <p class="empty">
-      Connect to a relay and select a source to see readings. No calibration workspace is needed. A
-      source change waits for its next sample.
+      Select a device from your garage to see readings. Readings appear when the device sends data.
     </p>
   }
   <div class="data-grid">

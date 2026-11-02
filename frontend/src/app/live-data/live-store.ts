@@ -46,6 +46,27 @@ export class LiveStore implements OnDestroy {
   private pending: LiveBatch[] = [];
   private pendingStatus: types.LiveConnectionStatus | null = null;
   private catalogRequest = 0;
+  private followingDevice = false;
+  private retiredSessions = new Set<string>();
+
+  async changeConnection(action: () => Promise<void>): Promise<void> {
+    this.busy.set(true);
+    this.changingScope = true;
+    this.error.set('');
+    this.reset(true);
+    this.catalog.set(null);
+    ++this.catalogRequest;
+    try {
+      await action();
+      this.generation = (await this.gateway.status()).generation;
+    } finally {
+      this.finish();
+    }
+  }
+
+  async selectDevice(deviceId: string): Promise<void> {
+    await this.select({ deviceId, sessionId: '' }, true);
+  }
 
   initialize(): void {
     if (this.initialized) return;
@@ -154,12 +175,14 @@ export class LiveStore implements OnDestroy {
     }
   }
 
-  async select(source: LiveSource): Promise<void> {
+  async select(source: LiveSource, followDevice = false): Promise<void> {
     if (this.busy()) return;
     this.changingScope = true;
     this.busy.set(true);
     this.error.set('');
     this.reset(false);
+    this.followingDevice = followDevice;
+    this.retiredSessions.clear();
     this.selected.set(source);
     try {
       this.generation = await this.gateway.select(source);
@@ -211,12 +234,27 @@ export class LiveStore implements OnDestroy {
     )
       return;
     this.sources.set(batch.sources ?? []);
-    if (!this.selected() && batch.samples?.length)
-      this.selected.set(batch.samples[batch.samples.length - 1]);
-    const selected = this.selected();
+    if (!this.selected() && batch.samples?.length) {
+      this.selected.set(batch.samples[0]);
+      this.followingDevice = true;
+    }
+    let selected = this.selected();
     if (!selected) return;
     const history = [...this.history()];
     for (const sample of batch.samples ?? []) {
+      if (sample.deviceId !== selected.deviceId || !Number.isFinite(Date.parse(sample.timestamp)))
+        continue;
+      if (this.followingDevice && sample.sessionId !== selected.sessionId) {
+        if (this.retiredSessions.has(sample.sessionId)) continue;
+        const last = history.at(-1);
+        if (sample.backfill && last && Date.parse(sample.timestamp) <= Date.parse(last.timestamp))
+          continue;
+        if (history.length) this.retiredSessions.add(selected.sessionId);
+        history.length = 0;
+        this.gaps.set(0);
+        selected = sample;
+        this.selected.set(sample);
+      }
       if (
         sourceKey(sample) !== sourceKey(selected) ||
         !Number.isFinite(Date.parse(sample.timestamp))
@@ -248,6 +286,8 @@ export class LiveStore implements OnDestroy {
     this.gaps.set(0);
     this.pending = [];
     if (sources) {
+      this.followingDevice = false;
+      this.retiredSessions.clear();
       this.sources.set([]);
       this.selected.set(null);
     }

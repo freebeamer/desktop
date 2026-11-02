@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { PlotlyChart } from '../visualization/plotly-chart';
 import { CHART_CONFIG, chartLayout } from '../visualization/theme';
@@ -8,7 +8,7 @@ import { liveTrace } from './live-traces';
 
 @Component({
   selector: 'app-live-view',
-  imports: [DatePipe, DecimalPipe, PlotlyChart],
+  imports: [DecimalPipe, PlotlyChart],
   templateUrl: './live-view.html',
   styleUrl: './live-view.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -16,22 +16,11 @@ import { liveTrace } from './live-traces';
 export class LiveView {
   readonly store = inject(LiveStore);
   readonly config = CHART_CONFIG;
-  readonly clientId = signal('');
-  // Tracked as a signal (not read live off the DOM at template-eval
-  // time) because this component is OnPush: an <input> with no
-  // (input)/(change) binding never re-triggers change detection on its
-  // own keystrokes, so a [disabled] expression reading pairingName's
-  // raw .value would silently go stale — caught live by an actual
-  // click-through of this form, not by a unit test.
-  readonly pairingNameValue = signal('');
   readonly plotted = signal<string[] | null>(null);
   readonly chartError = signal(false);
   readonly devices = computed(() => [
     ...new Set(this.store.sources().map((source) => source.deviceId)),
   ]);
-  readonly sessions = computed(() =>
-    this.store.sources().filter((source) => source.deviceId === this.store.selected()?.deviceId),
-  );
   readonly channels = computed(() => {
     const metadata = this.store.catalog()?.channels ?? [];
     const ids = new Set([
@@ -72,45 +61,8 @@ export class LiveView {
     });
   });
 
-  constructor() {
-    this.store.initialize();
-  }
-
-  async connect(
-    url: HTMLInputElement,
-    token: HTMLInputElement,
-    client: HTMLSelectElement,
-  ): Promise<void> {
-    const secret = token.value;
-    token.value = '';
-    await this.store.connect(url.value.trim(), secret, client.value);
-  }
-
-  async createPairingLink(
-    url: HTMLInputElement,
-    token: HTMLInputElement,
-    name: HTMLInputElement,
-  ): Promise<void> {
-    await this.store.createPairingLink(url.value.trim(), token.value, name.value.trim());
-  }
-
-  async copyPairingLink(deepLink: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(deepLink);
-    } catch {
-      // Clipboard access can be denied/unavailable; the link is still
-      // shown in the panel for manual copy either way.
-    }
-  }
-
   chooseDevice(device: string): void {
-    const source = this.store.sources().find((source) => source.deviceId === device);
-    if (source) void this.store.select(source);
-  }
-
-  chooseSession(session: string): void {
-    const source = this.sessions().find((source) => source.sessionId === session);
-    if (source) void this.store.select(source);
+    void this.store.selectDevice(device);
   }
 
   togglePlot(id: string): void {

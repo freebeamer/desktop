@@ -1,6 +1,8 @@
 <div class="app-shell">
   <app-top-toolbar [backendState]="backendState()" [backendLabel]="backendLabel()" />
 
+  <app-garage-panel />
+
   <nav class="view-switch" aria-label="Application views">
     <button type="button" [attr.aria-pressed]="view() === 'editor'" (click)="view.set('editor')">Calibration editor</button>
     <button type="button" [attr.aria-pressed]="view() === 'live'" (click)="view.set('live')">Live data</button>
