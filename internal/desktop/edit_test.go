@@ -276,7 +276,7 @@ func TestSetIndexMatchesEquivalentSetCell(t *testing.T) {
 		t.Fatalf("outcome location = %#v", outcome)
 	}
 	if outcome.Raw != 90 {
-		t.Fatalf("Raw = %d, want 90", outcome.Raw)
+		t.Fatalf("Raw = %g, want 90", outcome.Raw)
 	}
 }
 

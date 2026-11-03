@@ -26,8 +26,8 @@ type cellChange struct {
 	offset      uint64
 	before      []byte
 	after       []byte
-	beforeRaw   int64
-	afterRaw    int64
+	beforeRaw   float64
+	afterRaw    float64
 	beforeValue float64
 	afterValue  float64
 	requested   float64
@@ -308,7 +308,7 @@ func (s *Service) editingAllowedLocked() (bool, string) {
 	return evaluateEditingGate(regionFits, checksumSummary)
 }
 
-func (s *Service) outcomeLocked(change cellChange, raw int64, value float64, requested float64) types.EditOutcome {
+func (s *Service) outcomeLocked(change cellChange, raw float64, value float64, requested float64) types.EditOutcome {
 	ws := s.workspace
 	return types.EditOutcome{
 		MapID: change.mapID, MapTitle: change.mapTitle, Row: change.row, Column: change.column, Index: change.index,
