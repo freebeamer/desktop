@@ -26,6 +26,7 @@ from gi.repository import Gdk, GLib, Gtk, WebKit2
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--desktop-url", default="http://127.0.0.1:34116")
 parser.add_argument("--relay-bin", default="/tmp/freebeamer-relay-4b")
+parser.add_argument("--session-bin", default="/tmp/freebeamer-relay-session")
 parser.add_argument("--cli-bin", default="/tmp/freebeamer-4b")
 parser.add_argument("--screenshot", default="/tmp/freebeamer-live-view.png")
 args = parser.parse_args()
@@ -76,10 +77,12 @@ def stop_process(process):
 
 
 def run(folder):
-    created = subprocess.check_output([
-        args.relay_bin, "client", "add", "--name", "Desktop trial", "--db", folder + "/relay.sqlite"
-    ], text=True)
-    key = re.search(r"api key:\s+(\S+)", created).group(1)
+    # Mint a device session directly in the relay DB (static client keys were
+    # replaced by Ed25519 device pairing); the CLI sends this as its Bearer
+    # token via --api-key.
+    key = subprocess.check_output([
+        args.session_bin, "--db", folder + "/relay.sqlite", "--token", "smoke-device-session-token"
+    ], text=True).strip()
     with socket.socket() as reserve:
         reserve.bind(("127.0.0.1", 0))
         relay_port = reserve.getsockname()[1]
