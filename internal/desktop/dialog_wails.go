@@ -16,7 +16,9 @@ func (WailsFileDialog) OpenXDF(ctx context.Context) (string, error) {
 	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
 		Title: "Open XDF definition",
 		Filters: []runtime.FileFilter{
+			{DisplayName: "Calibration definitions (*.xdf, *.mapdef)", Pattern: "*.xdf;*.mapdef"},
 			{DisplayName: "XDF definitions (*.xdf)", Pattern: "*.xdf"},
+			{DisplayName: "mapdef definitions (*.mapdef)", Pattern: "*.mapdef"},
 		},
 	})
 }

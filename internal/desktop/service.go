@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/freebeamer/core/pkg/checksum"
 	"github.com/freebeamer/core/pkg/checksum/bmw/mevd1726"
 	"github.com/freebeamer/core/pkg/identify"
+	"github.com/freebeamer/core/pkg/mapdef"
 	"github.com/freebeamer/core/pkg/types"
 	"github.com/freebeamer/core/pkg/vehicleprofile"
 	"github.com/freebeamer/core/pkg/xdf"
@@ -58,17 +60,19 @@ func (*Service) Health() types.HealthStatus {
 	return types.HealthStatus{Ready: true, APIVersion: APIVersion, Engine: "FreeBeamer Go"}
 }
 
-// OpenWorkspace loads an XDF/BIN pair directly by path.
-func (s *Service) OpenWorkspace(xdfPath, binPath string) (types.WorkspaceSummary, error) {
-	xdfPath = strings.TrimSpace(xdfPath)
+// OpenWorkspace loads a definition/BIN pair directly by path. The definition
+// is an XDF (converted on open) or a .mapdef (loaded and validated directly,
+// so A2L-imported definitions open here too).
+func (s *Service) OpenWorkspace(definitionPath, binPath string) (types.WorkspaceSummary, error) {
+	definitionPath = strings.TrimSpace(definitionPath)
 	binPath = strings.TrimSpace(binPath)
-	if xdfPath == "" || binPath == "" {
-		return types.WorkspaceSummary{}, errors.New("desktop: an XDF path and a BIN path are required")
+	if definitionPath == "" || binPath == "" {
+		return types.WorkspaceSummary{}, errors.New("desktop: a definition path (.xdf or .mapdef) and a BIN path are required")
 	}
 
-	definition, err := xdf.ImportMapDefinition(xdfPath)
+	definition, err := loadDefinition(definitionPath)
 	if err != nil {
-		return types.WorkspaceSummary{}, fmt.Errorf("import XDF: %w", err)
+		return types.WorkspaceSummary{}, err
 	}
 	image, err := binfile.Load(binPath)
 	if err != nil {
@@ -91,7 +95,7 @@ func (s *Service) OpenWorkspace(xdfPath, binPath string) (types.WorkspaceSummary
 	ws := &workspace{
 		generation:      s.generation,
 		bindingIdentity: types.BindingWorkspace{DefinitionID: definition.ID, DefinitionSHA256: definitionHash, OriginalSHA256: hex.EncodeToString(originalHash[:]), OriginalSize: image.Size()},
-		xdfPath:         xdfPath,
+		xdfPath:         definitionPath,
 		binPath:         binPath,
 		definition:      definition,
 		image:           image,
@@ -101,9 +105,28 @@ func (s *Service) OpenWorkspace(xdfPath, binPath string) (types.WorkspaceSummary
 	}
 	s.workspace = ws
 	s.association = nil
-	s.recents = rememberRecent(s.recents, types.RecentEntry{XDFPath: xdfPath, BinPath: binPath})
+	s.recents = rememberRecent(s.recents, types.RecentEntry{XDFPath: definitionPath, BinPath: binPath})
 
 	return summarize(ws, s.checksums), nil
+}
+
+// loadDefinition reads a calibration definition into the canonical mapdef
+// model: a .mapdef is loaded and schema-validated directly, anything else is
+// parsed and converted as XDF. mapdef.Load also accepts an A2L-imported
+// definition, so those open here without a separate code path.
+func loadDefinition(path string) (*types.MapDefinition, error) {
+	if strings.EqualFold(filepath.Ext(path), ".mapdef") {
+		document, err := mapdef.Load(path)
+		if err != nil {
+			return nil, fmt.Errorf("load mapdef: %w", err)
+		}
+		return document, nil
+	}
+	document, err := xdf.ImportMapDefinition(path)
+	if err != nil {
+		return nil, fmt.Errorf("import XDF: %w", err)
+	}
+	return document, nil
 }
 
 // ChooseAndOpenWorkspace prompts for an XDF then a matching BIN through
